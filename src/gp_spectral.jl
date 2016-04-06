@@ -95,13 +95,16 @@ function GP_spectral(Y,X,V,w,
     σn = opts.σn
 
     np = length(w)*N # Number of parameters
-    Σn = σn*eye(np) # Noise covariance
+    Σn = σn*eye(2np) # Noise covariance
     A0 = _A(Z,Z,w,K)    # Raw regressor matrix
 
-    A1 = [A0; Σn]       # Helper matrix for numerically robust ridge regression
+    A1 = [real(A0) imag(A0); Σn]       # Helper matrix for numerically robust ridge regression
     A2 = svdfact(A1)    # SVD object which is fast to invert
 
-    bs(b) = A2\[b;zeros(np)] # Backslash function using the SVD object and numerically robust ridge regression
+    function bs(b)
+        x = A2\[b;zeros(2np)] # Backslash function using the SVD object and numerically robust ridge regression
+        complex(x[1:np], x[np+1,end])
+    end
     a(z) = _A(z,Z,w,K) # Covariance between all training inputs and z
 
     params = bs(Y) # Estimate the parameters. This is now (A'A+σI)\A'Y
@@ -123,11 +126,11 @@ import Plots.plot
 
 Plots.plot(s::GPspectum) = plot(s,:y)
 
-function Plots.plot(s::GPspectum, types...;  normalization=:sum, normdim=:freq)
+function Plots.plot(s::GPspectum, types...;  normalization=:sum, normdim=:freq, dims=3)
     for t in types
         t ∈ [:y, :Y, :outout] && plot_output(s)
         t ∈ [:spectrum] && plot_spectrum(s)
-        t ∈ [:schedfunc] && plot_schedfunc(s, normalization=normalization, normdim=normdim)
+        t ∈ [:schedfunc] && plot_schedfunc(s, normalization=normalization, normdim=normdim, dims=dims)
     end
 end
 
@@ -143,9 +146,9 @@ end
 
 plot_spectrum(s) = 0
 
-function plot_schedfunc(s; normalization=:max, normdim=:vel)
+function plot_schedfunc(s; normalization=:max, normdim=:vel, dims=3)
     Z = LPVSpectral.augment_state(s)
-    x = manhattan(LPVSpectral.reshape_params(s)) # [nω × N]
+    x = LPVSpectral.reshape_params(s) # [nω × N]
     Nf = length(s.w)
     Nv = 50
     N = length(s.Y)
@@ -160,7 +163,7 @@ function plot_schedfunc(s; normalization=:max, normdim=:vel)
 
     for j = 1:Nv, i = 1:Nf # freqs
         # (z1,z2,w,s)
-        r = Float64[rv([0,vg[i,j]],Z,s.w,s.opts.rv.params) for Z in Z]
+        r = rv([0,vg[i,j]],Z,s.w[i],s.opts.rv.params)
         A[i,j] = (ax[i,:]*r)[1]
         P[i,j] = (px[i,:]*r)[1]
     end
@@ -175,12 +178,25 @@ function plot_schedfunc(s; normalization=:max, normdim=:vel)
     end
     A = A./normalizer
 
-    plot3d()
-    for i = 1:Nf
-        plot3d!(fg[i,:]'[:],vg[i,:]'[:],A[i,:]'[:])
-    end
-    plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
+    if dims == 3
+        fig = plot3d()
+        for i = 1:Nf
+            plot3d!(fg[i,:]'[:],vg[i,:]'[:],A[i,:]'[:])
+        end
+        plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
+        return fig
+    else
+        figF = plot()
+        figP = plot()
+        for i = 1:Nf
+            plot!(figF,vg[i,:]'[:],A[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
+            # plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
+        end
+        plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
 
+        # plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
+        return figF
+    end
 
     # TODO: plot confidence intervals for these estimates
 
