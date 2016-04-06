@@ -2,6 +2,8 @@ module LPVSpectral
 using DSP
 using Plots
 
+
+include("utilities.jl")
 include("lsfft.jl")
 include("gp_spectral.jl")
 
@@ -15,6 +17,7 @@ ls_spectral_real,
 lswindowpsd,
 lswindowcsd,
 lscohere,
+ls_spectralext,
 GP_spectral
 
 # Types

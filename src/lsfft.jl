@@ -163,116 +163,111 @@ function lscohere(y,u,t,freqs, nw = 10, noverlap = 0)
     return Sch
 end
 
+_K(V,vc,gamma) = exp(-gamma*(V-vc).^2)
 
-# """``"""
-# function ls_spectralext(y::Vector,t::Vector,v::Vector,f,Nv; plotres = false)
-#     f       = f[:]
-#     N       = length(y)
-#     Nf      = length(f)
-#     A       = zeros(N,2Nf*(2Nv+1))
-#
-#
-#     vc      = linspace(0,max(abs(v)),Nv+2)
-#     vc      = vc[2:end-1]
-#     vc      = [-vc[end:-1:1];0; vc]
-#     gamma   = 1/(abs(vc[1]-vc[2]))
-#
-#     function K(v,vc)
-#         r = exp(-gamma*(v-vc).^2).*(sign(v) .== sign(vc))
-#         r ./=sum(r)
-#     end
-#
-#
-#     M(f,t,v) = vec(vec([cos(f.*t)'; sin(f.*t)'])*K(v,vc)')'
-#
-#     for n = 1:N
-#         A[n,:] = M(f,t[n],v[n])
-#     end
-#
-#     lambda = 1e-3;
-#     w   = (A'*A + lambda*eye(2Nf*(2Nv+1)))\(A'*y)
-#     x   = reshape(w,2,Nf,(2Nv+1));
-#     ax  = squeeze(sqrt(sum(x.^2,1)));
-#     px  = squeeze(atan2(x[2,:,:],x[1,:,:]));
-#
-#
-#     fva = 1-var(A*w-y)/var(y)
-#
-#
-#     [fg,vg] = meshgrid(f,linspace(minimum(v),maximum(v),20))
-#     F = zeros(size(fg))
-#     P = zeros(size(fg))
-#
-#     for j = 1:size(fg,1)
-#         for i = 1:size(vg,2) # freqs
-#             F[j,i] = ax[i,:]*K(vg[j,i],vc)
-#             P[j,i] = px[i,:]*K(vg[j,i],vc)
-#         end
-#     end
-#
-#
-#     display("Spectral estimate ")
-#     if false # Normalize over velocities (max)
-#         F = F./repmat(max(F,2),1,Nf)
-#         display("normalized so max over freqencies is 1 for each velocity")
-#     end
-#
-#     if true # Normalize over velocities (sum) (tycks vara den bästa)
-#         F = F./repmat(sum(F,2),1,Nf)
-#         display("normalized so sum over freqencies is 1 for each velocity")
-#     end
-#
-#     if false # Normalize over frequencies
-#         F = F./repmat(max(F,1),20,1)
-#         display("normalized so max over velocities is 1 for each freqency")
-#     end
-#
-#     if false # Normalize over frequencies (sum)
-#         F = F./repmat(sum(F,1),20,1)
-#         display("normalized so sum over velocities is 1 for each freqency")
-#     end
-#
-#     if plotres
-#         if false
-#             figure,
-#             waterfall(fg',vg',F')
-#             zlabel("Amplitude")
-#             xlabel("Frequency")
-#             ylabel("Velocity [rad/s]")
-#             alpha(0.2)
-#             # %         set(gca,"zscale","log")
-#         end
-#         if false
-#             figure,
-#             contourf(fg',vg',(F)',linspace(min(v),max(v),100),':')
-#             xlabel("Frequency")
-#             ylabel("Velocity")
-#             colormap("jet")
-#             colorbar
-#         end
-#         if true
-#             figure,
-#             subplot(1,2,1)
-#             imagesc(fg(1,:)',vg(:,1),F)
-#             xlabel("Frequency")
-#             ylabel("Velocity")
-#             colormap("jet")
-#             colorbar
-#             subplot(1,2,2)
-#             plot(fg(1,:)',mag2db(mean(F,1)),'o')
-#             xlabel("Frequency")
-#             ylabel("log(Power) [dB]")
-#             grid on
-#             xlim([0 fg(1,end)])
-#         end
-#     end
-#
-#     # % subplot(212), waterfall(fg',vg',P')
-#     # % zlabel('Phase')
-#     # % ylabel('Velocity')
-#     # % alpha(0.6)
-#     # % xlabel('Frequency')
-#     # % figure, imagesc(F)
-#     # % figure, imagesc(P)
-#
-# end
+function _K_norm(V,vc,gamma)
+    r = _K(V,vc,gamma)
+    r ./=sum(r)
+end
+
+_Kcoulomb(V,vc,gamma) = _K(V,vc,gamma).*(sign(V) .== sign(vc))
+
+function _Kcoulomb_norm(V,vc,gamma)
+    r = _Kcoulomb(V,vc,gamma)
+    r ./=sum(r)
+end
+
+"""``"""
+function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lambda = 1e-8, dims=3, coulomb = false, normalize=true, realaritm=true, kwargs...)
+    w       = w[:]
+    N       = length(Y)
+    Nf      = length(w)
+    if coulomb
+        Nv      = 2Nv+1
+        vc      = linspace(0,maximum(abs(V)),Nv+2)
+        vc      = vc[2:end-1]
+        vc      = [-vc[end:-1:1];0; vc]
+        gamma   = 1/(abs(vc[1]-vc[2]))
+        K(V,vc) = normalize ? _Kcoulomb_norm(V,vc,gamma) : _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
+    else
+        vc      = linspace(minimum(V),maximum(V),Nv)
+        gamma   = 1/(abs(vc[1]-vc[2]))
+        K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
+    end
+
+    if realaritm
+        M(w,X,V) = vec(vec([cos(w.*X)'; sin(w.*X)'])*K(V,vc)')'
+        A        = zeros(N,2Nf*Nv)
+    else
+        M(w,X,V) = vec(vec(exp(im*w.*X)')*K(V,vc)')'
+        A        = zeros(Complex128,N,Nf*Nv)
+    end
+    for n = 1:N
+        A[n,:] = M(w,X[n],V[n])
+    end
+
+    params = ridgereg(A,Y,lambda, !realaritm)
+    e = A*params-Y
+    Σ = var(e)*inv(A'A + lambda*I)
+    fva = 1-var(e)/var(Y)
+    fva < 0.9 && warn("Fraction of variance explained = $(fva)")
+    if realaritm
+        x   = reshape(params,2,Nf,Nv)
+        ax  = squeeze(sqrt(sum(x.^2,1)),1)
+        px  = squeeze(atan2(x[2,:,:],x[1,:,:]),1)
+    else
+        x   = reshape(params,Nf,Nv)
+        ax  = abs(x)
+        px  = angle(x)
+    end
+
+
+
+    fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
+    F = zeros(size(fg))
+    P = zeros(size(fg))
+
+    for j = 1:size(fg,1)
+        for i = 1:size(vg,2) # freqs
+            F[j,i] = (ax[j,:]*K(vg[j,i],vc))[1]
+            P[j,i] = (px[j,:]*K(vg[j,i],vc))[1]
+        end
+    end
+
+
+
+    nd = normdim == :freq ? 1 : 2
+    normalizer = 1
+    if normalization == :sum
+        normalizer =   sum(F, nd)/size(F,nd)
+
+    elseif normalization == :max
+        normalizer =   maximum(F, nd)
+    end
+    F = F./normalizer
+
+    if dims == 3
+        fig = plot3d()
+        for i = 1:Nf
+            plot3d!(fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:]; kwargs...)
+        end
+        plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
+    else
+        figF = plot()
+        figP = plot()
+        for i = 1:Nf
+            plot!(figF,vg[i,:]'[:],F[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$", kwargs...)
+            plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$", kwargs...)
+        end
+        plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n Normalization: $normalization, along dim $normdim, "*(realaritm ? "real" : "complex")*" arithmetics")#, zlabel="\$f(v)\$")
+
+        plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n Normalization: $normalization, along dim $normdim, "*(realaritm ? "real" : "complex")*" arithmetics")#, zlabel="\$f(v)\$")
+
+    end
+
+    figF
+end
+
+
+
+# TODO: Behöver det fixas någon windowing i tid? Antagligen ja för riktiga signaler

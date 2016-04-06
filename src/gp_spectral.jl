@@ -1,5 +1,11 @@
 SE(z1,z2,w,s) = exp(-0.5/s^2*(z1[2]-z2[2])^2)
-fourier(z1,z2,w,s) = exp(-im*w*(z1[1]-z2[1]))
+
+function normalizedSE(z1,z2,w::Real,s)
+    r = Float64[exp(-0.5/s^2*(z1[2]-z2[2])^2) for z2 in z2]
+    r ./=sum(r)
+end
+fourier(z1,z2,w::Real,s) = Complex128[exp(-im*w*(z1[1]-z2[1])) for z2 in z2]
+
 manhattan(x) = real(x)+imag(x)
 
 type GPcov
@@ -17,10 +23,13 @@ type GPspectralOpts
     rv::GPcov
     rw::GPfreq
     K # Combined covariance/kernel function)
-    GPspectralOpts(σn, rv, rw) = new(σn, rv, rw, (z1,z2,w) -> rv.rv(z1,z2,w,rv.params)*rw.rw(z1, z2, w,rw.params))
+    function GPspectralOpts(σn, rv, rw)
+        K(z1,z2,w) = rv.rv(z1,z2,w,rv.params).*rw.rw(z1, z2, w,rw.params)
+        new(σn, rv, rw, K)
+    end
 end
 
-GPspectralOpts(σn, s; rv=GPcov(SE,s), rw=GPfreq(fourier,0)) = GPspectralOpts(σn, rv, rw)
+GPspectralOpts(σn, s; rv=GPcov(normalizedSE,s), rw=GPfreq(fourier,0)) = GPspectralOpts(σn, rv, rw)
 
 type GPspectum
     opts::GPspectralOpts
@@ -33,18 +42,25 @@ type GPspectum
     params
 end
 
-
 augment_state(X,V) = [Float64[X[i], V[i]] for i in eachindex(X)]
 augment_state(s::GPspectum) = augment_state(s.X,s.V)
 
 function _A(z1, z2, w, K)
-    R = Complex128[K(z1,z2,w) for z1 in z1, z2 in z2, w in w]
     N = length(z1)
+    R = Array(Complex128,N,length(z2),length(w))
+    for (i,z1) in enumerate(z1), (j,w) in enumerate(w)
+        R[i,:,j] = K(z1,z2,w)
+    end
+
     reshape(R,N, round(Int,prod(size(R))/N))
 end
 
 function _A(z1::Array{Float64}, z2, w, K)
-    R = Complex128[K(z1,z2,w) for z2 in z2, w in w][:]'
+    R = Array(Complex128,length(z2),length(w))
+    for (j,w) in enumerate(w)
+        R[:,j] = K(z1,z2,w)
+    end
+    R[:]'
 end
 
 """ Returns params as a [nω × N] matrix"""
@@ -107,11 +123,11 @@ import Plots.plot
 
 Plots.plot(s::GPspectum) = plot(s,:y)
 
-function Plots.plot(s::GPspectum, types...)
+function Plots.plot(s::GPspectum, types...;  normalization=:sum, normdim=:freq)
     for t in types
         t ∈ [:y, :Y, :outout] && plot_output(s)
         t ∈ [:spectrum] && plot_spectrum(s)
-        t ∈ [:schedfunc] && plot_schedfunc(s)
+        t ∈ [:schedfunc] && plot_schedfunc(s, normalization=normalization, normdim=normdim)
     end
 end
 
@@ -127,64 +143,45 @@ end
 
 plot_spectrum(s) = 0
 
-function plot_schedfunc(s)
-    Z = augment_state(s)
-    x = reshape_params(s) # [nω × N]
+function plot_schedfunc(s; normalization=:max, normdim=:vel)
+    Z = LPVSpectral.augment_state(s)
+    x = manhattan(LPVSpectral.reshape_params(s)) # [nω × N]
     Nf = length(s.w)
+    Nv = 50
     N = length(s.Y)
     ax  = abs(x)
     px  = angle(x)
     rv = s.opts.rv.rv
 
-    fg,vg = meshgrid(s.w,linspace(minimum(s.V),maximum(s.V),20))
-    F = zeros(size(fg))
+
+    fg,vg = LPVSpectral.meshgrid(s.w,linspace(minimum(s.V),maximum(s.V),Nv))
+    A = zeros(size(fg))
     P = zeros(size(fg))
 
-    for j = 1:N, i = 1:Nf # freqs
+    for j = 1:Nv, i = 1:Nf # freqs
         # (z1,z2,w,s)
-            F[j,i] = ax[i,:]*rv([0,vg[j,i]],Z)
-            P[j,i] = px[i,:]*rv([0,vg[j,i]],Z)
+        r = Float64[rv([0,vg[i,j]],Z,s.w,s.opts.rv.params) for Z in Z]
+        A[i,j] = (ax[i,:]*r)[1]
+        P[i,j] = (px[i,:]*r)[1]
     end
-    #
-    #
-    #     display("Spectral estimate ")
-    #     if false # Normalize over velocities (max)
-    #         F = F./repmat(max(F,2),1,Nf)
-    #         display("normalized so max over freqencies is 1 for each velocity")
-    #     end
-    #
-    #     if true # Normalize over velocities (sum) (tycks vara den bästa)
-    #         F = F./repmat(sum(F,2),1,Nf)
-    #         display("normalized so sum over freqencies is 1 for each velocity")
-    #     end
-    #
-    #     if false # Normalize over frequencies
-    #         F = F./repmat(max(F,1),20,1)
-    #         display("normalized so max over velocities is 1 for each freqency")
-    #     end
-    #
-    #     if false # Normalize over frequencies (sum)
-    #         F = F./repmat(sum(F,1),20,1)
-    #         display("normalized so sum over velocities is 1 for each freqency")
-    #     end
-    #
-    #     if plotres
-    #         if false
-    #             figure,
-    #             waterfall(fg',vg',F')
-    #             zlabel("Amplitude")
-    #             xlabel("Frequency")
-    #             ylabel("Velocity [rad/s]")
-    #             alpha(0.2)
-    #             # %         set(gca,"zscale","log")
-    #         end
 
-du höll på att fixa det sista i denna funktionen :D
+    nd = normdim == :freq ? 1 : 2
+    normalizer = 1
+    if normalization == :sum
+        normalizer =   sum(A, nd)/size(A,nd)
+
+    elseif normalization == :max
+        normalizer =   maximum(A, nd)
+    end
+    A = A./normalizer
+
+    plot3d()
+    for i = 1:Nf
+        plot3d!(fg[i,:]'[:],vg[i,:]'[:],A[i,:]'[:])
+    end
+    plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
 
 
-
-
-
-
+    # TODO: plot confidence intervals for these estimates
 
 end
