@@ -178,7 +178,7 @@ function _Kcoulomb_norm(V,vc,gamma)
 end
 
 """``"""
-function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lambda = 1e-8, dims=3, coulomb = false, normalize=true, realaritm=true, kwargs...)
+function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lambda = 1e-8, dims=3, coulomb = false, normalize=true, kwargs...)
     w       = w[:]
     N       = length(Y)
     Nf      = length(w)
@@ -195,33 +195,22 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
         K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
     end
 
-    if realaritm
-        M(w,X,V) = vec(vec([cos(w.*X)'; sin(w.*X)'])*K(V,vc)')'
-        A        = zeros(N,2Nf*Nv)
-    else
-        M(w,X,V) = vec(vec(exp(im*w.*X)')*K(V,vc)')'
-        A        = zeros(Complex128,N,Nf*Nv)
-    end
+
+    M(w,X,V) = vec(vec(exp(im*w.*X)')*K(V,vc)')'
+    A        = zeros(Complex128,N,Nf*Nv)
+
     for n = 1:N
         A[n,:] = M(w,X[n],V[n])
     end
 
-    params = ridgereg(A,Y,lambda, !realaritm)
+    params = real_complex_bs(A,Y,lambda)
     e = A*params-Y
     Σ = var(e)*inv(A'A + lambda*I)
     fva = 1-var(e)/var(Y)
     fva < 0.9 && warn("Fraction of variance explained = $(fva)")
-    if realaritm
-        x   = reshape(params,2,Nf,Nv)
-        ax  = squeeze(sqrt(sum(x.^2,1)),1)
-        px  = squeeze(atan2(x[2,:,:],x[1,:,:]),1)
-    else
-        x   = reshape(params,Nf,Nv)
-        ax  = abs(x)
-        px  = angle(x)
-    end
-
-
+    x   = reshape(params,Nf,Nv)
+    ax  = abs(x)
+    px  = angle(x)
 
     fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
     F = zeros(size(fg))
@@ -234,13 +223,10 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
         end
     end
 
-
-
     nd = normdim == :freq ? 1 : 2
     normalizer = 1
     if normalization == :sum
         normalizer =   sum(F, nd)/size(F,nd)
-
     elseif normalization == :max
         normalizer =   maximum(F, nd)
     end
@@ -259,9 +245,9 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
             plot!(figF,vg[i,:]'[:],F[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$", kwargs...)
             plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$", kwargs...)
         end
-        plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n Normalization: $normalization, along dim $normdim, "*(realaritm ? "real" : "complex")*" arithmetics")#, zlabel="\$f(v)\$")
+        plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
 
-        plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n Normalization: $normalization, along dim $normdim, "*(realaritm ? "real" : "complex")*" arithmetics")#, zlabel="\$f(v)\$")
+        plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
 
     end
 
