@@ -1,10 +1,10 @@
-SE(z1,z2,w,s) = exp(-0.5/s^2*(z1[2]-z2[2])^2)
+SE(z1,z2,w,s) = exp(-0.5/s^2*(z1[2]-z2[2]).^2)
 
-function normalizedSE(z1,z2,w::Real,s)
-    r = Float64[exp(-0.5/s^2*(z1[2]-z2[2])^2) for z2 in z2]
+function normalizedSE(z1,z2,w,s)
+    r = Float64[exp(-0.5/s^2*(z1[2]-z2[2]).^2) for z2 in z2]
     r ./=sum(r)
 end
-fourier(z1,z2,w::Real,s) = Complex128[exp(-im*w*(z1[1]-z2[1])) for z2 in z2]
+fourier(z1,z2,w,s) = exp(-im*w*(z1[1]))
 
 manhattan(x) = real(x)+imag(x)
 
@@ -24,7 +24,7 @@ type GPspectralOpts
     rw::GPfreq
     K # Combined covariance/kernel function)
     function GPspectralOpts(σn, rv, rw)
-        K(z1,z2,w) = rv.rv(z1,z2,w,rv.params).*rw.rw(z1, z2, w,rw.params)
+        K(z1,z2,w) = vec(vec(rw.rw(z1, z2, w,rw.params))*rv.rv(z1,z2,w,rv.params)')
         new(σn, rv, rw, K)
     end
 end
@@ -46,25 +46,17 @@ augment_state(X,V) = [Float64[X[i], V[i]] for i in eachindex(X)]
 augment_state(s::GPspectum) = augment_state(s.X,s.V)
 
 function _A(z1, z2, w, K)
-    N = length(z1)
-    R = Array(Complex128,N,length(z2),length(w))
-    for (i,z1) in enumerate(z1), (j,w) in enumerate(w)
-        R[i,:,j] = K(z1,z2,w)
+    R = Array(Complex128,length(z1),length(z2)*length(w))
+    for (i,z1) in enumerate(z1)
+        R[i,:] = K(z1,z2,w)
     end
-
-    reshape(R,N, round(Int,prod(size(R))/N))
+    R
 end
 
-function _A(z1::Array{Float64}, z2, w, K)
-    R = Array(Complex128,length(z2),length(w))
-    for (j,w) in enumerate(w)
-        R[:,j] = K(z1,z2,w)
-    end
-    R[:]'
-end
 
 """ Returns params as a [nω × N] matrix"""
-reshape_params(s::GPspectum) = reshape(s.params, length(s.w), length(s.Y))
+reshape_params(s::GPspectum, args...) = reshape(s.params, length(s.w), length(s.Y))
+reshape_params(x,Nf) = reshape(x, Nf,round(Int,length(x)/Nf))
 
 
 function param_cov(A0,opts)
@@ -98,19 +90,30 @@ function GP_spectral(Y,X,V,w,
     Σn = σn*eye(2np) # Noise covariance
     A0 = _A(Z,Z,w,K)    # Raw regressor matrix
 
-    A1 = [real(A0) imag(A0); Σn]       # Helper matrix for numerically robust ridge regression
-    A2 = svdfact(A1)    # SVD object which is fast to invert
-
-    function bs(b)
-        x = A2\[b;zeros(2np)] # Backslash function using the SVD object and numerically robust ridge regression
-        complex(x[1:np], x[np+1,end])
+    if false # Use realified arithmetics
+        A1 = [real(A0) imag(A0); Σn]       # Helper matrix for numerically robust ridge regression
+        # A1 = [real(A0) imag(A0)]       # Helper matrix for numerically robust ridge regression
+        A2 = factorize(A1)    # SVD object which is fast to invert
+        function bs(b)
+            x = A2\[b;zeros(2np)] # Backslash function using the SVD object and numerically robust ridge regression
+            complex(x[1:np], x[np+1,end])
+        end
+    else
+        A1 = [A0; σn*eye(np)]       # Helper matrix for numerically robust ridge regression
+        A2 = factorize(A1)    # SVD object which is fast to invert
+        function bs(b)
+            x = A2\[b;zeros(np)] # Backslash function using the SVD object and numerically robust ridge regression
+        end
     end
-    a(z) = _A(z,Z,w,K) # Covariance between all training inputs and z
+    a(z) = K(z,Z,w) # Covariance between all training inputs and z
 
     params = bs(Y) # Estimate the parameters. This is now (A'A+σI)\A'Y
-    mD(z) =  a(z)*params
+    mD(z::Vector{Float64}) =  a(z)'params
+    mD(z) = _A(z,Z,w,K)*params
     KD(z,zp) = _A(z,zp,w,K) - a(z)*bs(a(zp)')
-
+    A1 = [real(A0) imag(A0)] # TODO: should Σn be appended here?
+    Σ = σn^2*inv(A1'A1)
+    dist = ComplexNormal(params,Σ)
 
     return GPspectum(opts,Y,X,V,w,mD,KD,params)
 end
@@ -146,58 +149,7 @@ end
 
 plot_spectrum(s) = 0
 
-function plot_schedfunc(s; normalization=:max, normdim=:vel, dims=3)
-    Z = LPVSpectral.augment_state(s)
-    x = LPVSpectral.reshape_params(s) # [nω × N]
-    Nf = length(s.w)
-    Nv = 50
-    N = length(s.Y)
-    ax  = abs(x)
-    px  = angle(x)
-    rv = s.opts.rv.rv
-
-
-    fg,vg = LPVSpectral.meshgrid(s.w,linspace(minimum(s.V),maximum(s.V),Nv))
-    A = zeros(size(fg))
-    P = zeros(size(fg))
-
-    for j = 1:Nv, i = 1:Nf # freqs
-        # (z1,z2,w,s)
-        r = rv([0,vg[i,j]],Z,s.w[i],s.opts.rv.params)
-        A[i,j] = (ax[i,:]*r)[1]
-        P[i,j] = (px[i,:]*r)[1]
-    end
-
-    nd = normdim == :freq ? 1 : 2
-    normalizer = 1
-    if normalization == :sum
-        normalizer =   sum(A, nd)/size(A,nd)
-
-    elseif normalization == :max
-        normalizer =   maximum(A, nd)
-    end
-    A = A./normalizer
-
-    if dims == 3
-        fig = plot3d()
-        for i = 1:Nf
-            plot3d!(fg[i,:]'[:],vg[i,:]'[:],A[i,:]'[:])
-        end
-        plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
-        return fig
-    else
-        figF = plot()
-        figP = plot()
-        for i = 1:Nf
-            plot!(figF,vg[i,:]'[:],A[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
-            # plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
-        end
-        plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
-
-        # plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
-        return figF
-    end
-
-    # TODO: plot confidence intervals for these estimates
-
+function plot_schedfunc(s::GPspectum; normalization=:none, normdim=:vel, dims=3)
+    Kt(v) = s.opts.rv.rv([0,v],Z,s.w,s.opts.rv.params)
+    return plot_schedfunc(s.params,s.V,s.w,Kt; normalization=normalization, normdim=normdim, dims=dims)
 end

@@ -1,12 +1,12 @@
 """`ridgereg(A,b,λ)`
-Accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]`"""
+Accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents a standard deviation, then λ = σ, not λ = σ²`"""
 function ridgereg(A,b,λ)
     n = size(A,2)
     [A; λ*eye(n)]\[b;zeros(n)]
 end
 
 """`real_complex_bs(A,b, λ=0)`
-Replaces the backslash operator for complex arguments. Expands the A-matrix into `[real(A) imag(A)]` and performs the computation using real arithmetics. Optionally accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]`"""
+Replaces the backslash operator for complex arguments. Expands the A-matrix into `[real(A) imag(A)]` and performs the computation using real arithmetics. Optionally accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents a standard deviation, then λ = σ, not λ = σ²`"""
 function real_complex_bs(A,b, λ=0)
     n = size(A,2)
     Ar = [real(A) imag(A)]
@@ -17,3 +17,81 @@ function real_complex_bs(A,b, λ=0)
     end
     x = complex(xr[1:n], xr[n+1:end])
 end
+
+
+
+type ComplexNormal{T<:Complex}
+    m::AbstractVector{T}
+    Γ::Base.LinAlg.Cholesky
+    C::Symmetric{T}
+end
+
+function ComplexNormal(X::AbstractMatrix,Y::AbstractMatrix)
+    @assert size(X) == size(Y)
+    mc = complex(mean(X,1)[:], mean(Y,1)[:])
+    V = Symmetric(cov([X Y]))
+    Γ,C = cn_V2ΓC(V)
+    ComplexNormal(mc,Γ,C)
+end
+
+function ComplexNormal{T<:Real}(m::AbstractVector{T},V::AbstractMatrix{T})
+    n = Int(length(m)/2)
+    mc = complex(m[1:n], m[n+1:end])
+    Γ,C = cn_V2ΓC(V)
+    ComplexNormal(mc,Γ,C)
+end
+
+function ComplexNormal{Tr<:Real, Tc<:Complex}(mc::AbstractVector{Tc},V::AbstractMatrix{Tr})
+    Γ,C = cn_V2ΓC(V)
+    ComplexNormal(mc,Γ,C)
+end
+
+function cn_V2ΓC{T<:Real}(V::Symmetric{T})
+    n = Int(size(V,1)/2)
+    Vxx = V[1:n,1:n]
+    Vyy = V[n+1:end,n+1:end]
+    Vxy = V[1:n,n+1:end]
+    Vyx = V[n+1:end,1:n]
+    Γ = cholfact(complex(Vxx + Vyy, Vyx - Vxy))
+    C = Symmetric(complex(Vxx - Vyy, Vyx + Vxy))
+    Γ,C
+end
+
+cn_V2ΓC{T<:Real}(V::AbstractMatrix{T}) = cn_V2ΓC(Symmetric(V))
+
+cn_Vxx(Γ,C) = cholfact(real(full(Γ)+C)/2)
+cn_Vyy(Γ,C) = cholfact(real(full(Γ)-C)/2)
+cn_Vxy(Γ,C) = cholfact(imag(-full(Γ)+C)/2)
+cn_Vyx(Γ,C) = cholfact(imag(full(Γ)+C)/2)
+
+cn_fVxx(Γ,C) = real(full(Γ)+C)/2
+cn_fVyy(Γ,C) = real(full(Γ)-C)/2
+cn_fVxy(Γ,C) = imag(-full(Γ)+C)/2
+cn_fVyx(Γ,C) = imag(full(Γ)+C)/2
+
+cn_Vs(Γ,C) = cn_Vxx(Γ,C),cn_Vyy(Γ,C),cn_Vxy(Γ,C),cn_Vyx(Γ,C)
+cn_V(Γ,C) = cholfact([cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)])
+cn_fV(Γ,C) = [cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)]
+Σ(cn::ComplexNormal) = full(cn.Γ)
+
+"""
+`f(cn::ComplexNormal, z)`
+
+Probability density function `f(z)` for a complex normal distribution.
+This can probably be more efficiently implemented
+"""
+function pdf(cn::ComplexNormal, z)
+    k = length(cn.m)
+    R = conj(cn.C)'*inv(cn.Γ)
+    P = full(conj(cn.Γ))-R*cn.C
+    cm = conj(cn.m)
+    cz = conj(z)
+    zmm = z-cn.m
+    czmm = cz-cm
+    ld = [czmm' zmm']
+    rd = [zmm; czmm]
+    S = [full(cn.Γ) cn.C;conj(cn.C) full(conj(cn.Γ))]
+    1/(π^k*sqrt(det(cn.Γ)*det(P))) * exp(-0.5* ld*(S\rd))
+end
+
+affine_transform(cn::ComplexNormal, A,b) = ComplexNormal(A*cn.m+b, cholfact(A*full(cn.Γ)*conj(A')), Symmetric(A*cn.C*A'))

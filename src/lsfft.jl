@@ -189,6 +189,11 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
         vc      = [-vc[end:-1:1];0; vc]
         gamma   = 1/(abs(vc[1]-vc[2]))
         K(V,vc) = normalize ? _Kcoulomb_norm(V,vc,gamma) : _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
+    elseif false # GP case, use all V as basis function centers
+        Nv = length(V)
+        vc      = V
+        gamma   = length(V)/(maximum(V)-minimum(V))
+        K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
     else
         vc      = linspace(minimum(V),maximum(V),Nv)
         gamma   = 1/(abs(vc[1]-vc[2]))
@@ -196,7 +201,7 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
     end
 
 
-    M(w,X,V) = vec(vec(exp(im*w.*X)')*K(V,vc)')'
+    M(w,X,V) = vec(vec(exp(im*w.*X))*K(V,vc)')'
     A        = zeros(Complex128,N,Nf*Nv)
 
     for n = 1:N
@@ -208,7 +213,14 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
     Σ = var(e)*inv(A'A + lambda*I)
     fva = 1-var(e)/var(Y)
     fva < 0.9 && warn("Fraction of variance explained = $(fva)")
-    x   = reshape(params,Nf,Nv)
+    return plot_schedfunc(params,V,w,v->K(v,vc); normalization=normalization, normdim=normdim, dims=dims)
+
+end
+
+
+function plot_schedfunc(xi,V,w,K; normalization=:none, normdim=:vel, dims=3)
+    Nf = length(w)
+    x = reshape_params(xi, Nf)
     ax  = abs(x)
     px  = angle(x)
 
@@ -218,8 +230,9 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
 
     for j = 1:size(fg,1)
         for i = 1:size(vg,2) # freqs
-            F[j,i] = (ax[j,:]*K(vg[j,i],vc))[1]
-            P[j,i] = (px[j,:]*K(vg[j,i],vc))[1]
+            r = K(vg[j,i])
+            F[j,i] = (ax[j,:]*r)[1]
+            P[j,i] = (px[j,:]*r)[1]
         end
     end
 
@@ -235,25 +248,23 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
     if dims == 3
         fig = plot3d()
         for i = 1:Nf
-            plot3d!(fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:]; kwargs...)
+            plot3d!(fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:])
         end
         plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
     else
         figF = plot()
         figP = plot()
         for i = 1:Nf
-            plot!(figF,vg[i,:]'[:],F[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$", kwargs...)
-            plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$", kwargs...)
+            plot!(figF,vg[i,:]'[:],F[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
+            # plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
         end
         plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
 
-        plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
+        # plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
 
     end
 
-    figF
+    figF, F,P,fg,vg
 end
-
-
 
 # TODO: Behöver det fixas någon windowing i tid? Antagligen ja för riktiga signaler
