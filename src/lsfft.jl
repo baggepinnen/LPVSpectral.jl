@@ -1,13 +1,7 @@
 
 """ `ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
 function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
-    N = length(y)
-    Nf = length(f)
-    A = zeros(Complex128,N,Nf)
-    for n = 1:N, fn=1:Nf
-        A[n,fn] = exp(-2*pi*1im*f[fn]*t[n])
-    end
-
+    A= [exp(-2π*im*f[fn]*t[n]) for t in t, f in f]
     x = A\y
 end
 
@@ -208,6 +202,7 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
         A[n,:] = M(w,X[n],V[n])
     end
 
+    # params = ridgereg(A,Y,lambda)
     params = real_complex_bs(A,Y,lambda)
     e = A*params-Y
     Σ = var(e)*inv(A'A + lambda*I)

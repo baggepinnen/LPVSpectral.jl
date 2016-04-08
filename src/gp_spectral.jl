@@ -93,21 +93,21 @@ function GP_spectral(Y,X,V,w,
     if false # Use realified arithmetics
         A1 = [real(A0) imag(A0); Σn]       # Helper matrix for numerically robust ridge regression
         # A1 = [real(A0) imag(A0)]       # Helper matrix for numerically robust ridge regression
-        A2 = factorize(A1)    # SVD object which is fast to invert
+        A2 = factorize(A1)    # factorized object which is fast to invert
         function bs(b)
-            x = A2\[b;zeros(2np)] # Backslash function using the SVD object and numerically robust ridge regression
+            x = A2\[b;zeros(2np)] # Backslash function using the factorized object and numerically robust ridge regression
             complex(x[1:np], x[np+1,end])
         end
     else
         A1 = [A0; σn*eye(np)]       # Helper matrix for numerically robust ridge regression
-        A2 = factorize(A1)    # SVD object which is fast to invert
+        A2 = factorize(A1)    # factorized object which is fast to invert
         function bs(b)
-            x = A2\[b;zeros(np)] # Backslash function using the SVD object and numerically robust ridge regression
+            x = A2\[b;zeros(np)] # Backslash function using the factorized object and numerically robust ridge regression
         end
     end
     a(z) = K(z,Z,w) # Covariance between all training inputs and z
 
-    params = bs(Y) # Estimate the parameters. This is now (A'A+σI)\A'Y
+    params = bs(Y) # Estimate the parameters. This is now (A'A+σ²I)\A'Y
     mD(z::Vector{Float64}) =  a(z)'params
     mD(z) = _A(z,Z,w,K)*params
     KD(z,zp) = _A(z,zp,w,K) - a(z)*bs(a(zp)')
