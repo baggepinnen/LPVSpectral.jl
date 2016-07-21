@@ -10,10 +10,6 @@ include("gp_spectral.jl")
 
 # Functions
 export ls_spectral,
-ls_spectral_real,
-tls_spectral_real,
-ls_spectral,
-ls_spectral_real,
 lswindowpsd,
 lswindowcsd,
 lscohere,
