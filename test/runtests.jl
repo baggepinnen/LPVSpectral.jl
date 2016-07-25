@@ -44,6 +44,7 @@ R = Array(Complex128,N,length(z2),length(w))
 
 
 ## Test ComplexNormal
+println("Testing Complex Normal")
 n = 10
 n2 = 5
 a = randn(n)
@@ -70,8 +71,15 @@ cn_V(A,0.1A)
 cn = ComplexNormal(a,A)
 cn = ComplexNormal(im*b,A)
 
-
-
+A = randn(4,4);
+A = A'A
+x = randn(1000,3)
+y = randn(1000,3)
+cn = ComplexNormal(x,y)
+z = rand(cn,1000000);
+cn2 = ComplexNormal(z)
+@test vecnorm(full(cn.Γ)-full(cn2.Γ)) < 0.01
+@test vecnorm(full(cn.C)-full(cn2.C)) < 0.01
 
 println("Done")
 

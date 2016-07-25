@@ -144,14 +144,26 @@ function _Kcoulomb_norm(V,vc,gamma)
     r ./=sum(r)
 end
 
+immutable SpectralExt
+    Y::AbstractVector
+    X::AbstractVector
+    V::AbstractVector
+    w
+    Nv
+    λ
+    coulomb::Bool
+    normalize::Bool
+    x
+    Σ
+end
 """
-`ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lambda = 1e-8, dims=3, coulomb = false, normalize=true, kwargs...)`
+`ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, λ = 1e-8, dims=3, coulomb = false, normalize=true)`
 
 `Y` output\n
 `X` sample locations\n
 `V` scheduling signal\n
 """
-function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer; normalization=:sum, normdim=:freq, lambda = 1e-8, dims=3, coulomb = false, normalize=true, kwargs...)
+function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
     w       = w[:]
     N       = length(Y)
     Nf      = length(w)
@@ -160,16 +172,11 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
         vc      = linspace(0,maximum(abs(V)),Nv+2)
         vc      = vc[2:end-1]
         vc      = [-vc[end:-1:1];0; vc]
-        gamma   = 1/(abs(vc[1]-vc[2]))
+        gamma   = Nv/(abs(vc[1]-vc[end]))
         K(V,vc) = normalize ? _Kcoulomb_norm(V,vc,gamma) : _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
-    elseif false # GP case, use all V as basis function centers
-        Nv      = length(V)
-        vc      = V
-        gamma   = length(V)/(maximum(V)-minimum(V))
-        K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
     else
         vc      = linspace(minimum(V),maximum(V),Nv)
-        gamma   = 1/(abs(vc[1]-vc[2]))
+        gamma   = Nv/(abs(vc[1]-vc[end]))
         K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
     end
 
@@ -181,63 +188,121 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
         A[n,:] = M(w,X[n],V[n])
     end
 
-    params = real_complex_bs(A,Y,lambda)
-    e = A*params-Y
-    Σ = var(e)*inv(A'A + lambda*I)
+    params = real_complex_bs(A,Y,λ)
+    real_params = [real(params); imag(params)]
+    AA = [real(A) imag(A)]
+    e = AA*real_params-Y
+    Σ = var(e)*inv(AA'AA + λ*I)
     fva = 1-var(e)/var(Y)
     fva < 0.9 && warn("Fraction of variance explained = $(fva)")
-    return plot_schedfunc(params,V,w,v->K(v,vc); normalization=normalization, normdim=normdim, dims=dims)
+    SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
 
 end
 
+# @userplot SchedFunc
 
-function plot_schedfunc(xi,V,w,K; normalization=:none, normdim=:vel, dims=3)
+@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000)
+    xi,V,w,Nv,coulomb,normalize = se.x,se.V,se.w,se.Nv,se.coulomb,se.normalize
     Nf = length(w)
-    x = reshape_params(xi, Nf)
+    x = reshape_params(xi,Nf)
     ax  = abs(x)
     px  = angle(x)
+    if coulomb
+        Nv      = 2Nv+1
+        vc      = linspace(0,maximum(abs(V)),Nv+2)
+        vc      = vc[2:end-1]
+        vc      = [-vc[end:-1:1];0; vc]
+        gamma   = 1/(abs(vc[1]-vc[2]))
+        K = normalize ? V->_Kcoulomb_norm(V,vc,gamma) : V->_Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
+    else
+        vc      = linspace(minimum(V),maximum(V),Nv)
+        gamma   = 1/(abs(vc[1]-vc[2]))
+        K = normalize ? V->_K_norm(V,vc,gamma) : V->_K(V,vc,gamma)
+    end
+
 
     fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
     F = zeros(size(fg))
+    FB = zeros(size(fg)...,nMC)
     P = zeros(size(fg))
+    if bounds
+        cn = ComplexNormal(se.x,se.Σ)
+        zi = rand(cn,nMC)
+        az  = abs(zi)
+        pz  = angle(zi)
+    end
 
     for j = 1:size(fg,1)
         for i = 1:size(vg,2) # freqs
             r = K(vg[j,i])
-            F[j,i] = (ax[j,:]*r)[1]
-            P[j,i] = (px[j,:]*r)[1]
+            F[j,i] = vecdot(ax[j,:],r)
+            P[j,i] = vecdot(px[j,:],r)
+            if bounds
+                for iMC = 1:nMC
+                    azi = reshape_params(az[iMC,:][:],Nf) # TODO get rid of this to optimize
+                    FB[j,i,iMC] = vecdot(azi[j,:],r)
+                end
+            end
         end
     end
+    FB = sort(FB,3)
+    FBl = FB[:,:,nMC ÷ 20]
+    FBu = FB[:,:,nMC - (nMC ÷ 20)]
 
     nd = normdim == :freq ? 1 : 2
-    normalizer = 1
+    normalizer = 1.
     if normalization == :sum
         normalizer =   sum(F, nd)/size(F,nd)
     elseif normalization == :max
         normalizer =   maximum(F, nd)
     end
     F = F./normalizer
+    delete!(d, :normalization)
+    delete!(d, :normdim)
 
     if dims == 3
-        fig = plot3d()
+        delete!(d, :dims)
+        yguide := "\$v\$"
+        xguide := "\$ω\$"
+        # zguide := "\$f(v)\$"
         for i = 1:Nf
-            plot3d!(fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:])
+            @series begin
+                (fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:])
+            end
         end
-        plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
     else
-        figF = plot()
-        # figP = plot()
-        for i = 1:Nf
-            plot!(figF,vg[i,:]'[:],F[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
-            # plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
-        end
-        plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
 
-        # plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
+        for i = 1:Nf
+            xguide := "\$v\$"
+            yguide := "\$A(v)\$"
+            title := "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
+            @series begin
+                label := "\$ω = $(round(fg[i,1],1))\$"
+                if bounds
+                    ribbon := (FBl[i,:]'[:] - F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
+                end
+                (vg[i,:]'[:],F[i,:]'[:])
+            end
+        end
 
     end
+    delete!(d, :bounds)
+    delete!(d, :nMC)
+    nothing
 
-    figF, F,P,fg,vg
 end
 
 # TODO: Behöver det fixas någon windowing i tid? Antagligen ja för riktiga signaler
+
+
+
+#
+# @series begin
+#     (x,y)
+# end
+# @series begin
+#     linealpha := 0
+#     fillrange := y + bounds
+#     (x, y - bounds)
+# end
+#
