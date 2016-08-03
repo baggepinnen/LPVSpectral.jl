@@ -10,13 +10,13 @@ Replaces the backslash operator for complex arguments. Expands the A-matrix into
 function real_complex_bs(A,b, λ=0)
     n = size(A,2)
     Ar = [real(A) imag(A)]
-    if λ > 0
-        xr = [Ar; λ*eye(2n)]\[b;zeros(2n)]
-    else
-        xr = Ar\b
-    end
+    xr = λ > 0 ? [Ar; λ*eye(2n)]\[b;zeros(2n)] : Ar\b
     x = complex(xr[1:n], xr[n+1:end])
 end
+
+
+""" Returns params as a [nω × N] matrix"""
+reshape_params(x,Nf) = reshape(x, Nf,round(Int,length(x)/Nf))
 
 
 ## Complex Normal

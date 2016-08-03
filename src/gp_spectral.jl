@@ -54,9 +54,7 @@ function _A(z1, z2, w, K)
 end
 
 
-""" Returns params as a [nω × N] matrix"""
 reshape_params(s::GPspectum, args...) = reshape(s.params, length(s.w), length(s.Y))
-reshape_params(x,Nf) = reshape(x, Nf,round(Int,length(x)/Nf))
 
 
 function param_cov(A0,opts)
@@ -119,12 +117,6 @@ function GP_spectral(Y,X,V,w,
 end
 
 ## Plotting functionality ---------------------------------------
-function meshgrid(a,b)
-    grid_a = [i for i in a, j in b]
-    grid_b = [j for i in a, j in b]
-    grid_a, grid_b
-end
-
 import Plots.plot
 
 Plots.plot(s::GPspectum) = plot(s,:y)

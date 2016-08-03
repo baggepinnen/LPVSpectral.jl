@@ -50,8 +50,8 @@ function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
 end
 
 
-"""`lswindowpsd(y,t,freqs, nw = 10, noverlap = 0)`"""
-function lswindowpsd(y,t,freqs, nw = 10, noverlap = 0)
+"""`ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)`"""
+function ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
     inds    = 1:dpw
@@ -77,8 +77,8 @@ function lswindowpsd(y,t,freqs, nw = 10, noverlap = 0)
     return S
 end
 
-"""`lswindowcsd(y,u,t,freqs, nw = 10, noverlap = 0)`"""
-function lswindowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
+"""`ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)`"""
+function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
     if noverlap == 0
@@ -105,8 +105,8 @@ end
 #         Sch     = (abs(Syu).^2)./(Suu.*Syy);
 # end
 
-"""`lscohere(y,u,t,freqs, nw = 10, noverlap = 0)`"""
-function lscohere(y,u,t,freqs, nw = 10, noverlap = 0)
+"""`ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)`"""
+function ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
     if noverlap == 0
@@ -130,32 +130,20 @@ function lscohere(y,u,t,freqs, nw = 10, noverlap = 0)
     return Sch
 end
 
-_K(V,vc,gamma) = exp(-gamma*(V-vc).^2)
+@inline _K(V,vc,gamma) = exp(-gamma*(V-vc).^2)
 
-function _K_norm(V,vc,gamma)
+@inline function _K_norm(V,vc,gamma)
     r = _K(V,vc,gamma)
     r ./=sum(r)
 end
 
-_Kcoulomb(V,vc,gamma) = _K(V,vc,gamma).*(sign(V) .== sign(vc))
+@inline _Kcoulomb(V,vc,gamma) = _K(V,vc,gamma).*(sign(V) .== sign(vc))
 
-function _Kcoulomb_norm(V,vc,gamma)
+@inline function _Kcoulomb_norm(V,vc,gamma)
     r = _Kcoulomb(V,vc,gamma)
     r ./=sum(r)
 end
 
-immutable SpectralExt
-    Y::AbstractVector
-    X::AbstractVector
-    V::AbstractVector
-    w
-    Nv
-    λ
-    coulomb::Bool
-    normalize::Bool
-    x
-    Σ
-end
 """
 `ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, λ = 1e-8, dims=3, coulomb = false, normalize=true)`
 
@@ -199,98 +187,6 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
 
 end
 
-# @userplot SchedFunc
-
-@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000)
-    xi,V,w,Nv,coulomb,normalize = se.x,se.V,se.w,se.Nv,se.coulomb,se.normalize
-    Nf = length(w)
-    x = reshape_params(xi,Nf)
-    ax  = abs(x)
-    px  = angle(x)
-    if coulomb
-        Nv      = 2Nv+1
-        vc      = linspace(0,maximum(abs(V)),Nv+2)
-        vc      = vc[2:end-1]
-        vc      = [-vc[end:-1:1];0; vc]
-        gamma   = 1/(abs(vc[1]-vc[2]))
-        K = normalize ? V->_Kcoulomb_norm(V,vc,gamma) : V->_Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
-    else
-        vc      = linspace(minimum(V),maximum(V),Nv)
-        gamma   = 1/(abs(vc[1]-vc[2]))
-        K = normalize ? V->_K_norm(V,vc,gamma) : V->_K(V,vc,gamma)
-    end
-
-
-    fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
-    F = zeros(size(fg))
-    FB = zeros(size(fg)...,nMC)
-    P = zeros(size(fg))
-    if bounds
-        cn = ComplexNormal(se.x,se.Σ)
-        zi = rand(cn,nMC)
-        az  = abs(zi)
-        pz  = angle(zi)
-    end
-
-    for j = 1:size(fg,1)
-        for i = 1:size(vg,2) # freqs
-            r = K(vg[j,i])
-            F[j,i] = vecdot(ax[j,:],r)
-            P[j,i] = vecdot(px[j,:],r)
-            if bounds
-                for iMC = 1:nMC
-                    azi = reshape_params(az[iMC,:][:],Nf) # TODO get rid of this to optimize
-                    FB[j,i,iMC] = vecdot(azi[j,:],r)
-                end
-            end
-        end
-    end
-    FB = sort(FB,3)
-    FBl = FB[:,:,nMC ÷ 20]
-    FBu = FB[:,:,nMC - (nMC ÷ 20)]
-
-    nd = normdim == :freq ? 1 : 2
-    normalizer = 1.
-    if normalization == :sum
-        normalizer =   sum(F, nd)/size(F,nd)
-    elseif normalization == :max
-        normalizer =   maximum(F, nd)
-    end
-    F = F./normalizer
-    delete!(d, :normalization)
-    delete!(d, :normdim)
-
-    if dims == 3
-        delete!(d, :dims)
-        yguide := "\$v\$"
-        xguide := "\$ω\$"
-        # zguide := "\$f(v)\$"
-        for i = 1:Nf
-            @series begin
-                (fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:])
-            end
-        end
-    else
-
-        for i = 1:Nf
-            xguide := "\$v\$"
-            yguide := "\$A(v)\$"
-            title := "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
-            @series begin
-                label := "\$ω = $(round(fg[i,1],1))\$"
-                if bounds
-                    ribbon := (FBl[i,:]'[:] - F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
-                end
-                (vg[i,:]'[:],F[i,:]'[:])
-            end
-        end
-
-    end
-    delete!(d, :bounds)
-    delete!(d, :nMC)
-    nothing
-
-end
 
 # TODO: Behöver det fixas någon windowing i tid? Antagligen ja för riktiga signaler
 

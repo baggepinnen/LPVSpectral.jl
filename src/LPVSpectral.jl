@@ -2,29 +2,46 @@ module LPVSpectral
 using DSP
 using Plots
 
+immutable SpectralExt
+    Y::AbstractVector
+    X::AbstractVector
+    V::AbstractVector
+    w
+    Nv
+    λ
+    coulomb::Bool
+    normalize::Bool
+    x
+    Σ
+end
+
 
 include("utilities.jl")
+include("plotting.jl")
 include("lsfft.jl")
-include("gp_spectral.jl")
+# include("gp_spectral.jl")
 
 
 # Functions
 export ls_spectral,
-lswindowpsd,
-lswindowcsd,
-lscohere,
-ls_spectralext,
-GP_spectral
+tls_spectral,
+ls_windowpsd,
+ls_windowcsd,
+ls_cohere,
+ls_spectralext
+# GP_spectral
 
 # Types
-export GPcov,
-GPfreq,
-GPspectralOpts,
-GPspectum,
-ComplexNormal
+# export GPcov,
+# GPfreq,
+# GPspectralOpts,
+# GPspectum
 
 # Helper functions
-export SE, fourier, manhattan, plot
+# export SE, fourier, manhattan, plot
+
+export ComplexNormal, SpectralExt
+
 
 # ComplexNormal
 export cn_V2ΓC,cn_V2ΓC,cn_Vxx,cn_Vyy,cn_Vxy,cn_Vyx,cn_fVxx,cn_fVyy,cn_fVxy,
