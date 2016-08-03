@@ -10,15 +10,17 @@ Replaces the backslash operator for complex arguments. Expands the A-matrix into
 function real_complex_bs(A,b, λ=0)
     n = size(A,2)
     Ar = [real(A) imag(A)]
-    if λ > 0
-        xr = [Ar; λ*eye(2n)]\[b;zeros(2n)]
-    else
-        xr = Ar\b
-    end
+    xr = λ > 0 ? [Ar; λ*eye(2n)]\[b;zeros(2n)] : Ar\b
     x = complex(xr[1:n], xr[n+1:end])
 end
 
 
+""" Returns params as a [nω × N] matrix"""
+reshape_params(x,Nf) = reshape(x, Nf,round(Int,length(x)/Nf))
+
+
+## Complex Normal
+import Base.rand
 
 type ComplexNormal{T<:Complex}
     m::AbstractVector{T}
@@ -26,12 +28,16 @@ type ComplexNormal{T<:Complex}
     C::Symmetric{T}
 end
 
-function ComplexNormal(X::AbstractMatrix,Y::AbstractMatrix)
+function ComplexNormal(X::AbstractVecOrMat,Y::AbstractVecOrMat)
     @assert size(X) == size(Y)
     mc = complex(mean(X,1)[:], mean(Y,1)[:])
     V = Symmetric(cov([X Y]))
     Γ,C = cn_V2ΓC(V)
     ComplexNormal(mc,Γ,C)
+end
+
+function ComplexNormal{T<:Complex}(X::AbstractVecOrMat{T})
+    ComplexNormal(real(X),imag(X))
 end
 
 function ComplexNormal{T<:Real}(m::AbstractVector{T},V::AbstractMatrix{T})
@@ -59,20 +65,24 @@ end
 
 cn_V2ΓC{T<:Real}(V::AbstractMatrix{T}) = cn_V2ΓC(Symmetric(V))
 
-cn_Vxx(Γ,C) = cholfact(real(full(Γ)+C)/2)
-cn_Vyy(Γ,C) = cholfact(real(full(Γ)-C)/2)
-cn_Vxy(Γ,C) = cholfact(imag(-full(Γ)+C)/2)
-cn_Vyx(Γ,C) = cholfact(imag(full(Γ)+C)/2)
+@inline cn_Vxx(Γ,C) = cholfact(real(full(Γ)+C)/2)
+@inline cn_Vyy(Γ,C) = cholfact(real(full(Γ)-C)/2)
+@inline cn_Vxy(Γ,C) = cholfact(imag(-full(Γ)+C)/2)
+@inline cn_Vyx(Γ,C) = cholfact(imag(full(Γ)+C)/2)
 
-cn_fVxx(Γ,C) = real(full(Γ)+C)/2
-cn_fVyy(Γ,C) = real(full(Γ)-C)/2
-cn_fVxy(Γ,C) = imag(-full(Γ)+C)/2
-cn_fVyx(Γ,C) = imag(full(Γ)+C)/2
+@inline cn_fVxx(Γ,C) = real(full(Γ)+C)/2
+@inline cn_fVyy(Γ,C) = real(full(Γ)-C)/2
+@inline cn_fVxy(Γ,C) = imag(-full(Γ)+C)/2
+@inline cn_fVyx(Γ,C) = imag(full(Γ)+C)/2
 
-cn_Vs(Γ,C) = cn_Vxx(Γ,C),cn_Vyy(Γ,C),cn_Vxy(Γ,C),cn_Vyx(Γ,C)
-cn_V(Γ,C) = cholfact([cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)])
-cn_fV(Γ,C) = [cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)]
-Σ(cn::ComplexNormal) = full(cn.Γ)
+@inline cn_Vs(Γ,C) = cn_Vxx(Γ,C),cn_Vyy(Γ,C),cn_Vxy(Γ,C),cn_Vyx(Γ,C)
+@inline cn_fV(Γ,C) = [cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)]
+@inline cn_V(Γ,C) = cholfact(cn_fV(Γ,C))
+@inline Σ(cn::ComplexNormal) = full(cn.Γ) # TODO: check this
+
+for f in [:cn_Vxx,:cn_Vyy,:cn_Vxy,:cn_Vyx,:cn_fVxx,:cn_fVyy,:cn_fVxy,:cn_fVyx,:cn_Vs,:cn_V,:cn_fV]
+    @eval ($f)(cn::ComplexNormal) = ($f)(cn.Γ,cn.C)
+end
 
 """
 `f(cn::ComplexNormal, z)`
@@ -95,3 +105,12 @@ function pdf(cn::ComplexNormal, z)
 end
 
 affine_transform(cn::ComplexNormal, A,b) = ComplexNormal(A*cn.m+b, cholfact(A*full(cn.Γ)*conj(A')), Symmetric(A*cn.C*A'))
+
+
+function rand(cn::ComplexNormal,s)
+    L = cn_V(cn)[:U]
+    m = [real(cn.m); imag(cn.m)]
+    n = length(cn.m)
+    z = (m' .+ randn(s,2n)*L)
+    return complex(z[:,1:n],z[:,n+1:end])
+end

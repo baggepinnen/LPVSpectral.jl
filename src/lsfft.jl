@@ -1,29 +1,34 @@
 
-""" `ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
-function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
-    A= [exp(-2π*im*f[fn]*t[n]) for t in t, f in f]
-    x = A\y
-end
-
-"""`ls_spectral_real(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
-function ls_spectral_real(y,t,f=(0:((length(y)-1)/2))/length(y))
+"""`ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
+function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
     N = length(y)
     Nf = length(f)
-    A = zeros(N,2Nf)
+    A = [exp(2*pi*f[fn]*t[n]) for n = 1:N, fn = 1:Nf]
+    x = real_complex_bs(A,b,λ)
+    print_with_color(:magenta,"$(round(cond(A'A),2))\n")
+end
+
+
+"""`ls_spectral(y,t,f,W::AbstractVector)`"""
+function ls_spectral(y,t,f,W::AbstractVector)
+    N = length(y)
+    Nf = length(f)
+    A = zeros(N,Nf)
     for n = 1:N, fn=1:Nf
         phi = 2*pi*f[fn]*t[n]
         A[n,fn] = cos(phi)
         A[n,fn+Nf] = -sin(phi)
-
     end
-    x = A\y
-    # x = x[1:Nf] + 1im*x[Nf+1:end]
-    print_with_color(:blue,"$(round(cond(A'A),2))\n")
-    x = reshape(x,Nf,2)
+
+    W = diagm([W;W])
+    x   = (A'*W*A)\A'*W*y
+    print_with_color(:magenta,"$(round(cond(A'*W*A),2))\n")
+    x = complex(x[1:Nf], x[Nf+1:end])
 end
 
-"""`tls_spectral_real(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
-function tls_spectral_real(y,t,f=(0:((length(y)-1)/2))/length(y))
+
+"""`tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
+function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
     N = length(y)
     Nf = length(f)
     A = zeros(N,2Nf)
@@ -41,44 +46,12 @@ function tls_spectral_real(y,t,f=(0:((length(y)-1)/2))/length(y))
     x = -V21/V22
     # x = x[1:Nf] + 1im*x[Nf+1:end]
     print_with_color(:blue,"$(round(cond(AA'AA),2))\n")
-    x = reshape(x,Nf,2)
-end
-
-"""`ls_spectral(y,t,f,W::VecOrMat)`"""
-function ls_spectral(y,t,f,W::VecOrMat)
-    N = length(y)
-    Nf = length(f)
-    A = zeros(Complex128,N,Nf)
-    for n = 1:N, fn=1:Nf
-        A[n,fn] = exp(-2*pi*1im*f[fn]*t[n])
-    end
-
-    W = diagm(W)
-    x   = (A'*W*A)\A'*W*y
-end
-
-"""`ls_spectral_real(y,t,f,W::VecOrMat)`"""
-function ls_spectral_real(y,t,f,W::VecOrMat)
-    N = length(y)
-    Nf = length(f)
-    A = zeros(N,2Nf)
-    for n = 1:N, fn=1:Nf
-        phi = 2*pi*f[fn]*t[n]
-        A[n,fn] = cos(phi)
-        A[n,fn+Nf] = -sin(phi)
-    end
-
-    W = diagm(W)
-    x   = (A'*W*A)\A'*W*y
-    print_with_color(:magenta,"$(round(cond(A'*W*A),2))\n")
-    x = x[1:Nf] + 1im*x[Nf+1:end]
+    x = complex(x[1:Nf], x[Nf+1:end])
 end
 
 
-
-
-"""`lswindowpsd(y,t,freqs, nw = 10, noverlap = 0)`"""
-function lswindowpsd(y,t,freqs, nw = 10, noverlap = 0)
+"""`ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)`"""
+function ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
     inds    = 1:dpw
@@ -93,19 +66,19 @@ function lswindowpsd(y,t,freqs, nw = 10, noverlap = 0)
         [0.5*(1 - cos(2*pi*k/(n-1))) for k=t]
     end
     W     = DSP.hanning(dpw)
-    S       = 0.
+    S     = 0.
     for j = 1:nw
         # W     = hanningjitter(t[inds])
-        x     = ls_spectral_real(y[inds],t[inds],freqs,W)
+        x     = ls_spectral(y[inds],t[inds],freqs,W)
         inds  = inds + (dpw - noverlap)
         # Power spectrum
-        S = S + abs(x).^2
+        S += abs(x).^2
     end
     return S
 end
 
-"""`lswindowcsd(y,u,t,freqs, nw = 10, noverlap = 0)`"""
-function lswindowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
+"""`ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)`"""
+function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
     if noverlap == 0
@@ -119,7 +92,7 @@ function lswindowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
         xu      = ls_spectral(u[inds],t[inds],freqs,W)
         inds  = inds + (dpw - noverlap)
         # Cross spectrum
-        S = S + xy.*conj(xu)
+        S += xy.*conj(xu)
     end
     return S
 end
@@ -132,8 +105,8 @@ end
 #         Sch     = (abs(Syu).^2)./(Suu.*Syy);
 # end
 
-"""`lscohere(y,u,t,freqs, nw = 10, noverlap = 0)`"""
-function lscohere(y,u,t,freqs, nw = 10, noverlap = 0)
+"""`ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)`"""
+function ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
     if noverlap == 0
@@ -149,30 +122,36 @@ function lscohere(y,u,t,freqs, nw = 10, noverlap = 0)
         xu      = ls_spectral(u[inds],t[inds],freqs,W)
         inds  = inds + (dpw - noverlap)
         # Cross spectrum
-        Syu = Syu + xy.*conj(xu)
-        Syy = Syy + abs(xy).^2
-        Suu = Suu + abs(xu).^2
+        Syu += xy.*conj(xu)
+        Syy += abs(xy).^2
+        Suu += abs(xu).^2
     end
     Sch     = (abs(Syu).^2)./(Suu.*Syy);
     return Sch
 end
 
-_K(V,vc,gamma) = exp(-gamma*(V-vc).^2)
+@inline _K(V,vc,gamma) = exp(-gamma*(V-vc).^2)
 
-function _K_norm(V,vc,gamma)
+@inline function _K_norm(V,vc,gamma)
     r = _K(V,vc,gamma)
     r ./=sum(r)
 end
 
-_Kcoulomb(V,vc,gamma) = _K(V,vc,gamma).*(sign(V) .== sign(vc))
+@inline _Kcoulomb(V,vc,gamma) = _K(V,vc,gamma).*(sign(V) .== sign(vc))
 
-function _Kcoulomb_norm(V,vc,gamma)
+@inline function _Kcoulomb_norm(V,vc,gamma)
     r = _Kcoulomb(V,vc,gamma)
     r ./=sum(r)
 end
 
-"""``"""
-function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lambda = 1e-8, dims=3, coulomb = false, normalize=true, kwargs...)
+"""
+`ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, λ = 1e-8, dims=3, coulomb = false, normalize=true)`
+
+`Y` output\n
+`X` sample locations\n
+`V` scheduling signal\n
+"""
+function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
     w       = w[:]
     N       = length(Y)
     Nf      = length(w)
@@ -181,16 +160,11 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
         vc      = linspace(0,maximum(abs(V)),Nv+2)
         vc      = vc[2:end-1]
         vc      = [-vc[end:-1:1];0; vc]
-        gamma   = 1/(abs(vc[1]-vc[2]))
+        gamma   = Nv/(abs(vc[1]-vc[end]))
         K(V,vc) = normalize ? _Kcoulomb_norm(V,vc,gamma) : _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
-    elseif false # GP case, use all V as basis function centers
-        Nv = length(V)
-        vc      = V
-        gamma   = length(V)/(maximum(V)-minimum(V))
-        K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
     else
         vc      = linspace(minimum(V),maximum(V),Nv)
-        gamma   = 1/(abs(vc[1]-vc[2]))
+        gamma   = Nv/(abs(vc[1]-vc[end]))
         K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
     end
 
@@ -202,64 +176,29 @@ function ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, lamb
         A[n,:] = M(w,X[n],V[n])
     end
 
-    # params = ridgereg(A,Y,lambda)
-    params = real_complex_bs(A,Y,lambda)
-    e = A*params-Y
-    Σ = var(e)*inv(A'A + lambda*I)
+    params = real_complex_bs(A,Y,λ)
+    real_params = [real(params); imag(params)]
+    AA = [real(A) imag(A)]
+    e = AA*real_params-Y
+    Σ = var(e)*inv(AA'AA + λ*I)
     fva = 1-var(e)/var(Y)
     fva < 0.9 && warn("Fraction of variance explained = $(fva)")
-    return plot_schedfunc(params,V,w,v->K(v,vc); normalization=normalization, normdim=normdim, dims=dims)
+    SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
 
 end
 
-
-function plot_schedfunc(xi,V,w,K; normalization=:none, normdim=:vel, dims=3)
-    Nf = length(w)
-    x = reshape_params(xi, Nf)
-    ax  = abs(x)
-    px  = angle(x)
-
-    fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
-    F = zeros(size(fg))
-    P = zeros(size(fg))
-
-    for j = 1:size(fg,1)
-        for i = 1:size(vg,2) # freqs
-            r = K(vg[j,i])
-            F[j,i] = (ax[j,:]*r)[1]
-            P[j,i] = (px[j,:]*r)[1]
-        end
-    end
-
-    nd = normdim == :freq ? 1 : 2
-    normalizer = 1
-    if normalization == :sum
-        normalizer =   sum(F, nd)/size(F,nd)
-    elseif normalization == :max
-        normalizer =   maximum(F, nd)
-    end
-    F = F./normalizer
-
-    if dims == 3
-        fig = plot3d()
-        for i = 1:Nf
-            plot3d!(fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:])
-        end
-        plot3d!(ylabel="\$v\$", xlabel="\$ω\$")#, zlabel="\$f(v)\$")
-    else
-        figF = plot()
-        figP = plot()
-        for i = 1:Nf
-            plot!(figF,vg[i,:]'[:],F[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
-            # plot!(figP,vg[i,:]'[:],P[i,:]'[:]; lab="\$ω = $(round(fg[i,1],1))\$")
-        end
-        plot!(figF,xlabel="\$v\$", ylabel="\$A(v)\$", title="Estimated functional dependece \$A(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
-
-        # plot!(figP,xlabel="\$v\$", ylabel="\$ϕ(v)\$", title="Estimated functional dependece \$ϕ(v)\$\n")# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
-
-    end
-
-    figF, F,P,fg,vg
-end
 
 # TODO: Behöver det fixas någon windowing i tid? Antagligen ja för riktiga signaler
+
+
+
+#
+# @series begin
+#     (x,y)
+# end
+# @series begin
+#     linealpha := 0
+#     fillrange := y + bounds
+#     (x, y - bounds)
+# end
+#
