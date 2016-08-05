@@ -96,7 +96,7 @@ end
     if dims == 3
         delete!(d, :dims)
         yguide --> "\$v\$"
-        xguide --> "\$ω\$"
+        xguide --> "\$\\omega\$"
         # zguide := "\$f(v)\$"
         for i = 1:Nf
             @series begin
@@ -111,7 +111,7 @@ end
             yguide --> "\$A(v)\$"
             title --> "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
             @series begin
-                label --> "\$ω = $(round(fg[i,1],1))\$"
+                label --> "\$\\omega = $(round(fg[i,1],1))\$"
                 if bounds
                     ribbon := (FBl[i,:]'[:] - F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
                 end

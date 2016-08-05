@@ -3,7 +3,7 @@
 function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
     N = length(y)
     Nf = length(f)
-    A = [exp(2*pi*f[fn]*t[n]) for n = 1:N, fn = 1:Nf]
+    A = [exp(2π*f[fn]*t[n]) for n = 1:N, fn = 1:Nf]
     x = real_complex_bs(A,b,λ)
     print_with_color(:magenta,"$(round(cond(A'A),2))\n")
 end
@@ -15,13 +15,13 @@ function ls_spectral(y,t,f,W::AbstractVector)
     Nf = length(f)
     A = zeros(N,Nf)
     for n = 1:N, fn=1:Nf
-        phi = 2*pi*f[fn]*t[n]
+        phi = 2π*f[fn]*t[n]
         A[n,fn] = cos(phi)
         A[n,fn+Nf] = -sin(phi)
     end
 
     W = diagm([W;W])
-    x   = (A'*W*A)\A'*W*y
+    x   = (A'W*A)\A'W*y
     print_with_color(:magenta,"$(round(cond(A'*W*A),2))\n")
     x = complex(x[1:Nf], x[Nf+1:end])
 end
@@ -33,7 +33,7 @@ function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
     Nf = length(f)
     A = zeros(N,2Nf)
     for n = 1:N, fn=1:Nf
-        phi = 2*pi*f[fn]*t[n]
+        phi = 2π*f[fn]*t[n]
         A[n,fn] = cos(phi)
         A[n,fn+Nf] = -sin(phi)
 
@@ -63,7 +63,7 @@ function ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)
         n = length(t)
         t = t-t[1]
         t *= (n-1)/t[end]
-        [0.5*(1 - cos(2*pi*k/(n-1))) for k=t]
+        [0.5*(1 - cos(2π*k/(n-1))) for k=t]
     end
     W     = DSP.hanning(dpw)
     S     = 0.
@@ -161,13 +161,12 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
         vc      = vc[2:end-1]
         vc      = [-vc[end:-1:1];0; vc]
         gamma   = Nv/(abs(vc[1]-vc[end]))
-        K(V,vc) = normalize ? _Kcoulomb_norm(V,vc,gamma) : _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
+        K       = normalize ? (V,vc) -> _Kcoulomb_norm(V,vc,gamma) : (V,vc) -> _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
     else
         vc      = linspace(minimum(V),maximum(V),Nv)
         gamma   = Nv/(abs(vc[1]-vc[end]))
-        K(V,vc) = normalize ? _K_norm(V,vc,gamma) : _K(V,vc,gamma)
+        K       = normalize ? (V,vc) -> _K_norm(V,vc,gamma) : (V,vc) -> _K(V,vc,gamma)
     end
-
 
     M(w,X,V) = vec(vec(exp(im*w.*X))*K(V,vc)')'
     A        = zeros(Complex128,N,Nf*Nv)
@@ -189,16 +188,3 @@ end
 
 
 # TODO: Behöver det fixas någon windowing i tid? Antagligen ja för riktiga signaler
-
-
-
-#
-# @series begin
-#     (x,y)
-# end
-# @series begin
-#     linealpha := 0
-#     fillrange := y + bounds
-#     (x, y - bounds)
-# end
-#

@@ -29,15 +29,15 @@ z1 = Z[1]
 sigma = (maximum(V)-minimum(V))/(0.5*N)*100
 σn = 0.05
 
-opts = GPspectralOpts(σn, sigma)
-
-# s = GP_spectral(Y,X,V,w, opts)
-R = Array(Complex128,N,length(z2),length(w))
-@test size(LPVSpectral.normalizedSE(z1,z2,w[1],sigma)) == size(z2)
-@test size(LPVSpectral.fourier(z1,z2,w,sigma)) == size(w)
-@test length(opts.K(z1,z2,w)) == length(Z)*length(w)
-
-@test size(LPVSpectral._A(z2, z2, w, opts.K)) == (N,N*length(w))
+# opts = GPspectralOpts(σn, sigma)
+#
+# # s = GP_spectral(Y,X,V,w, opts)
+# R = Array(Complex128,N,length(z2),length(w))
+# @test size(LPVSpectral.normalizedSE(z1,z2,w[1],sigma)) == size(z2)
+# @test size(LPVSpectral.fourier(z1,z2,w,sigma)) == size(w)
+# @test length(opts.K(z1,z2,w)) == length(Z)*length(w)
+#
+# @test size(LPVSpectral._A(z2, z2, w, opts.K)) == (N,N*length(w))
 
 
 
@@ -59,13 +59,13 @@ cn = ComplexNormal(X,Y)
 @test size(cn.m) == (n2,)
 @test size(cn.Γ) == (n2,n2)
 @test size(cn.C) == (n2,n2)
-affine_transform(cn, B, b)
+# affine_transform(cn, B, b)
 pdf(cn,b)
 pdf(cn,im*b)
 
 @test isa(cn_Vxx(A,A), Base.LinAlg.Cholesky)
 @test isa(cn_fVxx(A,A), Matrix)
-@test issym(cn_fVxx(A,A))
+@test issymmetric(cn_fVxx(A,A))
 cn_V(A,0.1A)
 
 cn = ComplexNormal(a,A)
