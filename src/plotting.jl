@@ -62,21 +62,18 @@ end
     if bounds
         cn = ComplexNormal(se.x,se.Σ)
         zi = rand(cn,nMC)
-        az  = abs(zi)
-        pz  = angle(zi)
     end
 
     for j = 1:size(fg,1)
         for i = 1:size(vg,2) # freqs
             r = K(vg[j,i])
-            F[j,i] = vecdot(ax[j,:],r)
-            P[j,i] = vecdot(px[j,:],r)
+            F[j,i] = abs(vecdot(x[j,:],r))
+            P[j,i] = angle(vecdot(x[j,:],r))
             if bounds
                 for iMC = 1:nMC
-                    azi = az[iMC,j:Nf:end][:]
-                    FB[j,i,iMC] = vecdot(azi,r)
-                    pzi = pz[iMC,j:Nf:end][:]
-                    PB[j,i,iMC] = vecdot(pzi,r)
+                    zii = zi[iMC,j:Nf:end][:]
+                    FB[j,i,iMC] = abs(vecdot(zii,r))
+                    PB[j,i,iMC] = angle(vecdot(zii,r))
                 end
             end
         end
@@ -119,7 +116,8 @@ end
             @series begin
                 label --> "\$\\omega = $(round(fg[i,1],1))\$"
                 if bounds
-                    ribbon := (FBl[i,:]'[:] - F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
+                    # writecsv("debugdata.csv",[F[i,:]'[:]  FBl[i,:]'[:]-F[i,:]'[:] FBu[i,:]'[:]-F[i,:]'[:]])
+                    ribbon := (-FBl[i,:]'[:] + F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
                 end
                 (vg[i,:]'[:],F[i,:]'[:])
             end
@@ -131,9 +129,10 @@ end
             linestyle := :dashdot
             @series begin
                 label --> "\$\\phi\$"
-                # if bounds
-                #     ribbon := (PBl[i,:]'[:] - P[i,:]'[:], PBu[i,:]'[:] - P[i,:]'[:])
-                # end
+                fillalpha := 0.1
+                if bounds
+                    ribbon := (-PBl[i,:]'[:] + P[i,:]'[:], PBu[i,:]'[:] - P[i,:]'[:])
+                end
                 (vg[i,:]'[:],P[i,:]'[:])
             end
         end
