@@ -58,6 +58,7 @@ end
     F = zeros(size(fg))
     FB = zeros(size(fg)...,nMC)
     P = zeros(size(fg))
+    PB = zeros(size(fg)...,nMC)
     if bounds
         cn = ComplexNormal(se.x,se.Σ)
         zi = rand(cn,nMC)
@@ -74,6 +75,8 @@ end
                 for iMC = 1:nMC
                     azi = az[iMC,j:Nf:end][:]
                     FB[j,i,iMC] = vecdot(azi,r)
+                    pzi = pz[iMC,j:Nf:end][:]
+                    PB[j,i,iMC] = vecdot(pzi,r)
                 end
             end
         end
@@ -81,6 +84,9 @@ end
     FB = sort(FB,3)
     FBl = FB[:,:,nMC ÷ 20]
     FBu = FB[:,:,nMC - (nMC ÷ 20)]
+    PB = sort(PB,3)
+    PBl = PB[:,:,nMC ÷ 20]
+    PBu = PB[:,:,nMC - (nMC ÷ 20)]
 
     nd = normdim == :freq ? 1 : 2
     normalizer = 1.
@@ -116,6 +122,19 @@ end
                     ribbon := (FBl[i,:]'[:] - F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
                 end
                 (vg[i,:]'[:],F[i,:]'[:])
+            end
+        end
+
+        for i = 1:Nf
+            xguide --> "\$v\$"
+            yguide --> "\$\\phi(v)\$"
+            linestyle := :dashdot
+            @series begin
+                label --> "\$\\phi\$"
+                # if bounds
+                #     ribbon := (PBl[i,:]'[:] - P[i,:]'[:], PBu[i,:]'[:] - P[i,:]'[:])
+                # end
+                (vg[i,:]'[:],P[i,:]'[:])
             end
         end
 
