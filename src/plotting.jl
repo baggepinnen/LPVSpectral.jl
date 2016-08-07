@@ -34,7 +34,7 @@ end
 
 # @userplot SchedFunc
 
-@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000)
+@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000, phase = false)
     xi,V,w,Nv,coulomb,normalize = se.x,se.V,se.w,se.Nv,se.coulomb,se.normalize
     Nf = length(w)
     x = reshape_params(xi,Nf)
@@ -73,7 +73,9 @@ end
                 for iMC = 1:nMC
                     zii = zi[iMC,j:Nf:end][:]
                     FB[j,i,iMC] = abs(vecdot(zii,r))
-                    PB[j,i,iMC] = angle(vecdot(zii,r))
+                    if phase
+                        PB[j,i,iMC] = angle(vecdot(zii,r))
+                    end
                 end
             end
         end
@@ -122,22 +124,24 @@ end
                 (vg[i,:]'[:],F[i,:]'[:])
             end
         end
-
-        for i = 1:Nf
-            xguide --> "\$v\$"
-            yguide --> "\$\\phi(v)\$"
-            linestyle := :dashdot
-            @series begin
-                label --> "\$\\phi\$"
-                fillalpha := 0.1
-                if bounds
-                    ribbon := (-PBl[i,:]'[:] + P[i,:]'[:], PBu[i,:]'[:] - P[i,:]'[:])
+        if phase
+            for i = 1:Nf
+                xguide --> "\$v\$"
+                yguide --> "\$\\phi(v)\$"
+                linestyle := :dashdot
+                @series begin
+                    label --> "\$\\phi\$"
+                    fillalpha := 0.1
+                    if bounds
+                        ribbon := (-PBl[i,:]'[:] + P[i,:]'[:], PBu[i,:]'[:] - P[i,:]'[:])
+                    end
+                    (vg[i,:]'[:],P[i,:]'[:])
                 end
-                (vg[i,:]'[:],P[i,:]'[:])
             end
         end
 
     end
+    delete!(d, :phase)
     delete!(d, :bounds)
     delete!(d, :nMC)
 
