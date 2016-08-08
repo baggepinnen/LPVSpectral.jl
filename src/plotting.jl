@@ -35,7 +35,7 @@ end
 # @userplot SchedFunc
 
 @recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000, phase = false)
-    xi,V,w,Nv,coulomb,normalize = se.x,se.V,se.w,se.Nv,se.coulomb,se.normalize
+    xi,V,X,w,Nv,coulomb,normalize = se.x,se.V,se.X,se.w,se.Nv,se.coulomb,se.normalize
     Nf = length(w)
     x = reshape_params(xi,Nf)
     ax  = abs(x)
@@ -65,7 +65,7 @@ end
     end
 
     for j = 1:size(fg,1)
-        for i = 1:size(vg,2) # freqs
+        for i = 1:size(vg,2)
             r = K(vg[j,i])
             F[j,i] = abs(vecdot(x[j,:],r))
             P[j,i] = angle(vecdot(x[j,:],r))
@@ -116,7 +116,7 @@ end
             yguide --> "\$A(v)\$"
             title --> "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
             @series begin
-                label --> "\$\\omega = $(round(fg[i,1],1))\$"
+                label --> "\$\\omega = $(round(fg[i,1]/pi,1))\\pi\$"
                 if bounds
                     # writecsv("debugdata.csv",[F[i,:]'[:]  FBl[i,:]'[:]-F[i,:]'[:] FBu[i,:]'[:]-F[i,:]'[:]])
                     ribbon := (-FBl[i,:]'[:] + F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
@@ -132,10 +132,11 @@ end
                 @series begin
                     label --> "\$\\phi\$"
                     fillalpha := 0.1
+                    pi = P[i,:]'[:]
                     if bounds
-                        ribbon := (-PBl[i,:]'[:] + P[i,:]'[:], PBu[i,:]'[:] - P[i,:]'[:])
+                        ribbon := (-PBl[i,:]'[:] + pi, PBu[i,:]'[:] - pi)
                     end
-                    (vg[i,:]'[:],P[i,:]'[:])
+                    (vg[i,:]'[:],pi)
                 end
             end
         end
