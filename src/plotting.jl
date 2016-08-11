@@ -83,9 +83,11 @@ end
     FB = sort(FB,3)
     FBl = FB[:,:,nMC ÷ 20]
     FBu = FB[:,:,nMC - (nMC ÷ 20)]
+    FBm = squeeze(mean(FB,3),3)
     PB = sort(PB,3)
     PBl = PB[:,:,nMC ÷ 20]
     PBu = PB[:,:,nMC - (nMC ÷ 20)]
+    PBm = squeeze(mean(PB,3),3)
 
     nd = normdim == :freq ? 1 : 2
     normalizer = 1.
@@ -122,6 +124,13 @@ end
                     ribbon := (-FBl[i,:]'[:] + F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
                 end
                 (vg[i,:]'[:],F[i,:]'[:])
+            end
+        end
+
+        for i = 1:Nf
+            @series begin
+                label --> "Mean"
+                (vg[i,:]'[:],FBm[i,:]'[:])
             end
         end
         if phase
