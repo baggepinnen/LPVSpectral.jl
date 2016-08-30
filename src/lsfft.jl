@@ -155,11 +155,11 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
     w       = w[:]
     N       = length(Y)
     Nf      = length(w)
-    if coulomb
-        Nv      = 2Nv+1
+    if coulomb # If Coulomb setting is activated, double the number of basis functions and clip the activation at zero velocity
         vc      = linspace(0,maximum(abs(V)),Nv+2)
         vc      = vc[2:end-1]
-        vc      = [-vc[end:-1:1];0; vc]
+        vc      = [-vc[end:-1:1]; vc]
+        Nv      = 2Nv
         gamma   = Nv/(abs(vc[1]-vc[end]))
         K       = normalize ? (V,vc) -> _Kcoulomb_norm(V,vc,gamma) : (V,vc) -> _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
     else

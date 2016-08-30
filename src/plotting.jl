@@ -34,22 +34,21 @@ end
 
 # @userplot SchedFunc
 
-@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000, phase = false)
+@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000, phase = false, mcmean=false)
     xi,V,X,w,Nv,coulomb,normalize = se.x,se.V,se.X,se.w,se.Nv,se.coulomb,se.normalize
     Nf = length(w)
     x = reshape_params(xi,Nf)
     ax  = abs(x)
     px  = angle(x)
     if coulomb
-        Nv      = 2Nv+1
-        vc      = linspace(0,maximum(abs(V)),Nv+2)
+        vc      = linspace(0,maximum(abs(V)),Nv/2+2)
         vc      = vc[2:end-1]
-        vc      = [-vc[end:-1:1];0; vc]
-        gamma   = 1/(abs(vc[1]-vc[2]))
+        vc      = [-vc[end:-1:1]; vc]
+        gamma   = Nv/(abs(vc[1]-vc[end]))
         K = normalize ? V->_Kcoulomb_norm(V,vc,gamma) : V->_Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
     else
         vc      = linspace(minimum(V),maximum(V),Nv)
-        gamma   = 1/(abs(vc[1]-vc[2]))
+        gamma   = Nv/(abs(vc[1]-vc[end]))
         K = normalize ? V->_K_norm(V,vc,gamma) : V->_K(V,vc,gamma)
     end
 
@@ -61,20 +60,20 @@ end
     PB = zeros(size(fg)...,nMC)
     if bounds
         cn = ComplexNormal(se.x,se.Σ)
-        zi = rand(cn,nMC)
+        zi = rand(cn,nMC) # Draw several random parameters from the posterior distribution
     end
 
     for j = 1:size(fg,1)
         for i = 1:size(vg,2)
-            r = K(vg[j,i])
-            F[j,i] = abs(vecdot(x[j,:],r))
-            P[j,i] = angle(vecdot(x[j,:],r))
+            ϕ = K(vg[j,i]) # Kernel activation vector
+            F[j,i] = abs(vecdot(x[j,:],ϕ))
+            P[j,i] = angle(vecdot(x[j,:],ϕ))
             if bounds
                 for iMC = 1:nMC
                     zii = zi[iMC,j:Nf:end][:]
-                    FB[j,i,iMC] = abs(vecdot(zii,r))
+                    FB[j,i,iMC] = abs(vecdot(zii,ϕ))
                     if phase
-                        PB[j,i,iMC] = angle(vecdot(zii,r))
+                        PB[j,i,iMC] = angle(vecdot(zii,ϕ))
                     end
                 end
             end
@@ -119,18 +118,12 @@ end
             title --> "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
             @series begin
                 label --> "\$\\omega = $(round(fg[i,1]/pi,1))\\pi\$"
+                m = mcmean ? FBm[i,:]'[:] : F[i,:]'[:]
                 if bounds
-                    # writecsv("debugdata.csv",[F[i,:]'[:]  FBl[i,:]'[:]-F[i,:]'[:] FBu[i,:]'[:]-F[i,:]'[:]])
-                    ribbon := (-FBl[i,:]'[:] + F[i,:]'[:], FBu[i,:]'[:] - F[i,:]'[:])
+                    # fillrange := FBu[i,:]'[:]
+                    ribbon := (-FBl[i,:]'[:] + m, FBu[i,:]'[:] - m)
                 end
-                (vg[i,:]'[:],F[i,:]'[:])
-            end
-        end
-
-        for i = 1:Nf
-            @series begin
-                label --> "Mean"
-                (vg[i,:]'[:],FBm[i,:]'[:])
+                (vg[i,:]'[:],m)
             end
         end
         if phase
@@ -154,6 +147,7 @@ end
     delete!(d, :phase)
     delete!(d, :bounds)
     delete!(d, :nMC)
+    delete!(d, :mcmean)
 
     nothing
 
