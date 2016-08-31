@@ -80,12 +80,13 @@ end
         end
     end
     FB = sort(FB,3)
-    FBl = FB[:,:,nMC ÷ 20]
-    FBu = FB[:,:,nMC - (nMC ÷ 20)]
+    lim = 1000
+    FBl = FB[:,:,nMC ÷ lim]
+    FBu = FB[:,:,nMC - (nMC ÷ lim)]
     FBm = squeeze(mean(FB,3),3)
     PB = sort(PB,3)
-    PBl = PB[:,:,nMC ÷ 20]
-    PBu = PB[:,:,nMC - (nMC ÷ 20)]
+    PBl = PB[:,:,nMC ÷ lim]
+    PBu = PB[:,:,nMC - (nMC ÷ lim)]
     PBm = squeeze(mean(PB,3),3)
 
     nd = normdim == :freq ? 1 : 2
