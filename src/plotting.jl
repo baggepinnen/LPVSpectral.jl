@@ -160,7 +160,7 @@ end
     title --> "Spectrum"
     Nf = length(w)
     x = reshape_params(xi,Nf)
-    ax  = abs(x)
+    ax  = abs2(x)
     px  = angle(x)
     ax
 end
