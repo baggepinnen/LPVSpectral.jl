@@ -34,7 +34,7 @@ end
 
 # @userplot SchedFunc
 
-@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=3, bounds=true, nMC = 5_000, phase = false, mcmean=false)
+@recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=2, bounds=true, nMC = 5_000, phase = false, mcmean=false)
     xi,V,X,w,Nv,coulomb,normalize = se.x,se.V,se.X,se.w,se.Nv,se.coulomb,se.normalize
     Nf = length(w)
     x = reshape_params(xi,Nf)

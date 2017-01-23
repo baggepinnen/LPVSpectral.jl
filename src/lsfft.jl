@@ -1,5 +1,11 @@
 
-"""`ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
+"""`ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)`
+
+perform spectral estimation using the least-squares method
+`y` is the signal to be analyzed
+`t` is the sampling points
+`f` is a vector of frequencies
+"""
 function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
     N = length(y)
     Nf = length(f)
@@ -9,7 +15,9 @@ function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
 end
 
 
-"""`ls_spectral(y,t,f,W::AbstractVector)`"""
+"""`ls_spectral(y,t,f,W::AbstractVector)`
+`W` is a vector of weights, for weighted least-squares
+"""
 function ls_spectral(y,t,f,W::AbstractVector)
     N = length(y)
     Nf = length(f)
@@ -27,7 +35,9 @@ function ls_spectral(y,t,f,W::AbstractVector)
 end
 
 
-"""`tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`"""
+"""`tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`
+Perform total least-squares spectral estimation using the SVD-method. See `ls_spectral` for additional help
+"""
 function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
     N = length(y)
     Nf = length(f)
@@ -50,7 +60,10 @@ function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
 end
 
 
-"""`ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)`"""
+"""`ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)`
+
+perform widowed spectral estimation using the least-squares method. See `ls_spectral` for additional help.
+"""
 function ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
@@ -77,7 +90,13 @@ function ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)
     return S
 end
 
-"""`ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)`"""
+"""`ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)`
+
+Perform windowed cross spectral density estimation using the least-squares method.
+
+`y` and `u` are the two signals to be analyzed and `t::AbstractVector` are their sampling points
+See `ls_spectral` for additional help.
+"""
 function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
@@ -105,7 +124,11 @@ end
 #         Sch     = (abs(Syu).^2)./(Suu.*Syy);
 # end
 
-"""`ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)`"""
+"""`ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)`
+
+Perform spectral coherence estimation using the least-squares method.
+See also `ls_windowcsd` and `ls_spectral` for additional help.
+"""
 function ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)
     N       = length(y)
     dpw     = floor(Int64,N/nw)
@@ -145,11 +168,20 @@ end
 end
 
 """
-`ls_spectralext(Y,X,V,w,Nv::Int; normalization=:sum, normdim=:freq, λ = 1e-8, dims=3, coulomb = false, normalize=true)`
+`ls_spectralext(Y,X,V,w,Nv::Int; λ = 1e-8, coulomb = false, normalize=true)`
+
+Perform LPV spectral estimation using the method presented in
+Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition."
+See the paper for additional details.
 
 `Y` output\n
 `X` sample locations\n
 `V` scheduling signal\n
+`w` frequency vector\n
+`Nv` number of basis functions\n
+`λ` Regularization parameter\n
+`coulomb` Assume discontinuity at `v=0` (useful for signals where, e.g., Coulomb friction might cause issues.)\n
+`normalize` Use normalized basis functions (See paper for details).
 """
 function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
     w       = w[:]
@@ -185,6 +217,3 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
     SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
 
 end
-
-
-# TODO: Behöver det fixas någon windowing i tid? Antagligen ja för riktiga signaler

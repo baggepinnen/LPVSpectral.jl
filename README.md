@@ -48,8 +48,8 @@ end
 
 N = 500 # Number of training data points
 f = [v->2v^2, v->2/(5v+1), v->3exp(-10*(v-0.5)^2),] # Functional dependences on the scheduling variable
-w = 2pi*[2,10,20] # Frequency vector
-w_test = 2pi*(2:2:25) # Test Frequency vector, set w_test = w for a nice function visualization
+w = 2π*[2,10,20] # Frequency vector
+w_test = 2π*(2:2:25) # Test Frequency vector, set w_test = w for a nice function visualization
 
 Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N, true)
 ```
@@ -58,11 +58,9 @@ Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N, true)
 
 ```julia
 # Options for spectral estimation
-λ = 0.02
-normalization = :none
-normdim = :vel
-normal = true
-Nv = 50
+λ = 0.02        # Regularization parmater
+normal = true   # Use normalized basis functions
+Nv = 50         # Number of basis functions
 
 se = ls_spectralext(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
 ```
@@ -71,14 +69,14 @@ All that remains now is to visualize the result, along with the result of standa
 
 ```julia
 plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel=L"$x$ (sampling points)", title=L"Test signal $y_t$ and scheduling signal $v_t$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
-plot(se; normalization=normalization, normdim=normdim, dims=2, l=:solid, c = [:red :green :blue], fillalpha=0.5, nMC = 5000, fillcolor=[RGBA(1,.5,.5,.5) RGBA(.5,1,.5,.5) RGBA(.5,.5,1,.5)], linewidth=2, bounds=true, lab=["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w]', phase = false)
+plot(se; normalization=:none, dims=2, l=:solid, c = [:red :green :blue], fillalpha=0.5, nMC = 5000, fillcolor=[RGBA(1,.5,.5,.5) RGBA(.5,1,.5,.5) RGBA(.5,.5,1,.5)], linewidth=2, bounds=true, lab=["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w]', phase = false)
 plot!(V,dependence_matrix, title=L"Functional dependeces $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false)
 
 # Plot regular spectrum
 Nf = length(w_test)
 rp = LPVSpectral.reshape_params(copy(se.x),Nf)
 spectrum_ext  = sum(rp,2) |> abs2 # See paper for details
-fs = N/(X[end]-X[1]) # This is the sampling freqency of the generated signal
+fs = N/(X[end]-X[1]) # This is the (approximate) sampling freqency of the generated signal
 spectrum_per = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
 plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)

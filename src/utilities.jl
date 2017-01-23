@@ -1,5 +1,5 @@
 """`ridgereg(A,b,λ)`
-Accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents a standard deviation, then λ = σ, not λ = σ²`"""
+Accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents an inverse standard deviation, then 1/λ = σ, not 1/λ = σ²`"""
 function ridgereg(A,b,λ)
     n = size(A,2)
     [A; λ*eye(n)]\[b;zeros(n)]
