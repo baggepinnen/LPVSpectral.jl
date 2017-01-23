@@ -19,7 +19,6 @@ end
 include("utilities.jl")
 include("plotting.jl")
 include("lsfft.jl")
-# include("gp_spectral.jl")
 
 
 # Functions
@@ -29,13 +28,7 @@ ls_windowpsd,
 ls_windowcsd,
 ls_cohere,
 ls_spectralext
-# GP_spectral
 
-# Types
-# export GPcov,
-# GPfreq,
-# GPspectralOpts,
-# GPspectum
 
 # Helper functions
 # export SE, fourier, manhattan, plot
