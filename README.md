@@ -2,8 +2,20 @@
 
 [![Build Status](https://travis-ci.org/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.org/baggepinnen/LPVSpectral.jl)
 
+An implementation of the spectral estimation method presented in
+Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition." 2017 American Control Conference.
+```bibtex
+@inproceedings{bagge2017spectral,
+  title        = {Linear Parameter-Varying Spectral Decomposition},
+  author       = {Bagge Carlson, Fredrik and Robertsson, Anders and Johansson, Rolf},
+  booktitle    = {2017 American Control Conference (ACC)},
+  pubstate     = {accepted},
+  year         = {2017},
+}
+```
+
 # Installation
-`Pkg.add("LPVSpectral.jl`
+`Pkg.add("LPVSpectral.jl")`
 
 # Usage
 We demonstrate the usage of the package with a simple example using simulated data, details can be found in the paper.
@@ -60,7 +72,7 @@ All that remains now is to visualize the result, along with the result of standa
 ```julia
 plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel=L"$x$ (sampling points)", title=L"Test signal $y_t$ and scheduling signal $v_t$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
 plot(se; normalization=normalization, normdim=normdim, dims=2, l=:solid, c = [:red :green :blue], fillalpha=0.5, nMC = 5000, fillcolor=[RGBA(1,.5,.5,.5) RGBA(.5,1,.5,.5) RGBA(.5,.5,1,.5)], linewidth=2, bounds=true, lab=["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w]', phase = false)
-plot!(V,dependence_matrix, title=L"Functional dependeces $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false, legend=:top)
+plot!(V,dependence_matrix, title=L"Functional dependeces $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false)
 
 # Plot regular spectrum
 Nf = length(w_test)
@@ -71,5 +83,9 @@ spectrum_per = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
 plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)
 plot!(2π*collect(spectrum_welch.freq), spectrum_welch.power, lab="Welch", l=:path, m=:none, yscale=:log10, linewidth=2, c=:blue)
-plot!(w_test,spectrum_ext/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false, legend=:top, lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
+plot!(w_test,spectrum_ext/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false, lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
 ```
+
+![window](figs/gen_sig.png)
+![window](figs/func_est.png)
+![window](figs/spectrum.png)
