@@ -24,7 +24,7 @@ end
 end
 
 
-@recipe function plot_spectrum(::Type{Val{:spectrum}}, plt::Plot)
+@recipe function plot_spectrum(::Type{Val{:spectrum}}, plt::Plots.Plot)
     title --> "Spectrum"
     yscale --> :log10
     xguide --> "Frequency / [\$F_s\$]"
