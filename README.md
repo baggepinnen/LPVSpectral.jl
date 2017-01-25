@@ -70,7 +70,7 @@ All that remains now is to visualize the result, along with the result of standa
 ```julia
 plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel=L"$x$ (sampling points)", title=L"Test signal $y_t$ and scheduling signal $v_t$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
 plot(se; normalization=:none, dims=2, l=:solid, c = [:red :green :blue], fillalpha=0.5, nMC = 5000, fillcolor=[RGBA(1,.5,.5,.5) RGBA(.5,1,.5,.5) RGBA(.5,.5,1,.5)], linewidth=2, bounds=true, lab=["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w]', phase = false)
-plot!(V,dependence_matrix, title=L"Functional dependeces $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false)
+plot!(V,dependence_matrix, title=L"Functional dependencies $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false)
 
 # Plot regular spectrum
 Nf = length(w_test)
