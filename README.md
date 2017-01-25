@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.org/baggepinnen/LPVSpectral.jl)
 
 An implementation of the spectral estimation method presented in
-Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition." 2017 American Control Conference.
+[Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition." 2017 American Control Conference.](http://lup.lub.lu.se/record/ac32368e-e199-44ff-b76a-36668ac7d595)
 ```bibtex
 @inproceedings{bagge2017spectral,
   title        = {Linear Parameter-Varying Spectral Decomposition},
