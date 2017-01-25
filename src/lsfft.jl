@@ -153,7 +153,7 @@ function ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)
     return Sch
 end
 
-@inline _K(V,vc,gamma) = exp(-gamma*(V-vc).^2)
+@inline _K(V,vc,gamma) = exp(-gamma*(V.-vc).^2)
 
 @inline function _K_norm(V,vc,gamma)
     r = _K(V,vc,gamma)
