@@ -90,12 +90,12 @@ plot!(w_test,spectrum_ext/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral densi
 
 # Other functions
 
-This package also provides tool for general least-squares spectral analysis, check out the functions
+This package also provides tools for general least-squares spectral analysis, check out the functions
 ```
-ls_spectral  # Least-squares spectral analysis
-tls_spectral # Totlal Least-squares spectral analysis
-ls_windowpsd # Windowed Least-squares spectral analysis
-ls_windowcsd # Windowed Least-squares cross-spectral density estimation
-ls_cohere    # Least-squares cross coherence estimation
+ls_spectral    # Least-squares spectral analysis
+tls_spectral   # Total Least-squares spectral analysis
+ls_windowpsd   # Windowed Least-squares spectral analysis
+ls_windowcsd   # Windowed Least-squares cross-spectral density estimation
+ls_cohere      # Least-squares cross coherence estimation
 ls_spectralext # LPV spectral decomposition
 ```
