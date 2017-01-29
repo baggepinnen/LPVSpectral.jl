@@ -37,26 +37,15 @@ end
 @recipe function plot_schedfunc(se::SpectralExt; normalization=:none, normdim=:freq, dims=2, bounds=true, nMC = 5_000, phase = false, mcmean=false)
     xi,V,X,w,Nv,coulomb,normalize = se.x,se.V,se.X,se.w,se.Nv,se.coulomb,se.normalize
     Nf = length(w)
-    x = reshape_params(xi,Nf)
-    ax  = abs(x)
-    px  = angle(x)
-    if coulomb
-        vc      = linspace(0,maximum(abs(V)),Nv/2+2)
-        vc      = vc[2:end-1]
-        vc      = [-vc[end:-1:1]; vc]
-        gamma   = Nv/(abs(vc[1]-vc[end]))
-        K = normalize ? V->_Kcoulomb_norm(V,vc,gamma) : V->_Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
-    else
-        vc      = linspace(minimum(V),maximum(V),Nv)
-        gamma   = Nv/(abs(vc[1]-vc[end]))
-        K = normalize ? V->_K_norm(V,vc,gamma) : V->_K(V,vc,gamma)
-    end
-
+    x  = reshape_params(xi,Nf)
+    ax = abs(x)
+    px = angle(x)
+    K  = basis_activation_func(V,Nv,normalize,coulomb)
 
     fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
-    F = zeros(size(fg))
+    F  = zeros(size(fg))
     FB = zeros(size(fg)...,nMC)
-    P = zeros(size(fg))
+    P  = zeros(size(fg))
     PB = zeros(size(fg)...,nMC)
     if bounds
         cn = ComplexNormal(se.x,se.Σ)

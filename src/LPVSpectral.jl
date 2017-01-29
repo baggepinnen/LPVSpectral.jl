@@ -53,7 +53,9 @@ tls_spectral,
 ls_windowpsd,
 ls_windowcsd,
 ls_cohere,
-ls_spectralext
+ls_spectralext,
+ls_windowpsd_ext,
+basis_activation_func
 
 
 # Helper functions

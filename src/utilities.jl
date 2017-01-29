@@ -1,3 +1,24 @@
+
+"""basis_activation_func(V,Nv,normalize,coulomb)
+
+Returns a function v->ϕ(v) ∈ ℜ(Nv) that calculates the activation of `Nv` basis functions spread out to cover V nicely. If coulomb is true, then we get twice the number of basis functions, 2Nv
+"""
+function basis_activation_func(V,Nv,normalize,coulomb)
+    if coulomb # If Coulomb setting is activated, double the number of basis functions and clip the activation at zero velocity (useful for data that exhibits a discontinuity at v=0, like coulomb friction)
+        vc      = linspace(0,maximum(abs(V)),Nv+2)
+        vc      = vc[2:end-1]
+        vc      = [-vc[end:-1:1]; vc]
+        Nv      = 2Nv
+        gamma   = Nv/(abs(vc[1]-vc[end]))
+        K       = normalize ? V -> _Kcoulomb_norm(V,vc,gamma) : V -> _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
+    else
+        vc      = linspace(minimum(V),maximum(V),Nv)
+        gamma   = Nv/(abs(vc[1]-vc[end]))
+        K       = normalize ? V -> _K_norm(V,vc,gamma) : V -> _K(V,vc,gamma)
+    end
+end
+
+
 """`ridgereg(A,b,λ)`
 Accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents an inverse standard deviation, then 1/λ = σ, not 1/λ = σ²`"""
 function ridgereg(A,b,λ)

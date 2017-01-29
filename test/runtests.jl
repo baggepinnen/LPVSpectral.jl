@@ -22,6 +22,12 @@ f = [v->2v^2, v->2/(5v+1), v->3exp(-10*(v-0.5)^2),] # Functional dependences on 
 w = 2pi*[2,10,50] # Frequency vector
 Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N)
 
+λ = 0.02        # Regularization parmater
+normal = true   # Use normalized basis functions
+Nv = 50         # Number of basis functions
+
+se = ls_spectralext(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
+
 Z = [Float64[X[i], V[i]] for i in eachindex(X)]
 z2 = Z
 z1 = Z[1]
