@@ -61,7 +61,7 @@ We now make use of the spectral estimation method presented in the paper:
 normal = true # Use normalized basis functions
 Nv     = 50   # Number of basis functions
 
-se = ls_spectralext(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
+se = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
 ```
 
 All that remains now is to visualize the result, along with the result of standard spectral estimation methods.
@@ -72,15 +72,13 @@ plot(se; normalization=:none, dims=2, l=:solid, c = [:red :green :blue], fillalp
 plot!(V,dependence_matrix, title=L"Functional dependencies $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false)
 
 # Plot regular spectrum
-Nf             = length(w_test)
-rp             = LPVSpectral.reshape_params(copy(se.x),Nf)
-spectrum_ext   = sum(rp,2) |> abs2 # See paper for details
+spectrum_ext   = psd(se) # Calculate power spectral density
 fs             = N/(X[end]-X[1]) # This is the (approximate) sampling freqency of the generated signal
 spectrum_per   = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
 plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)
 plot!(2π*collect(spectrum_welch.freq), spectrum_welch.power, lab="Welch", l=:path, m=:none, yscale=:log10, linewidth=2, c=:blue)
-plot!(w_test,spectrum_ext/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false, lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
+plot!(w_test,spectrum_lpv/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false, lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
 ```
 
 ![window](figs/gen_sig.png)

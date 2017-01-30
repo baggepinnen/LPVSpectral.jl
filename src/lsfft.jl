@@ -1,3 +1,5 @@
+import Base: start, done, next
+
 
 """`ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)`
 
@@ -11,7 +13,7 @@ function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
     Nf = length(f)
     A = [exp(2π*f[fn]*t[n]) for n = 1:N, fn = 1:Nf]
     x = real_complex_bs(A,b,λ)
-    print_with_color(:magenta,"$(round(cond(A'A),2))\n")
+    info("Condition number: $(round(cond(A'A),2))\n")
 end
 
 
@@ -30,7 +32,7 @@ function ls_spectral(y,t,f,W::AbstractVector)
 
     W = diagm([W;W])
     x   = (A'W*A)\A'W*y
-    print_with_color(:magenta,"$(round(cond(A'*W*A),2))\n")
+    info("Condition number: $(round(cond(A'*W*A),2))\n")
     x = complex(x[1:Nf], x[Nf+1:end])
 end
 
@@ -48,68 +50,50 @@ function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
         A[n,fn+Nf] = -sin(phi)
 
     end
-    AA = [A y]
+    AA    = [A y]
     U,S,V = svd(AA)
     m,n,p = N,2Nf,1
-    V21 = V[1:n,n+1:end]
-    V22 = V[n+1:end,n+1:end]
-    x = -V21/V22
+    V21   = V[1:n,n+1:end]
+    V22   = V[n+1:end,n+1:end]
+    x     = -V21/V22
     # x = x[1:Nf] + 1im*x[Nf+1:end]
-    print_with_color(:blue,"$(round(cond(AA'AA),2))\n")
+    info("Condition number: $(round(cond(AA'AA),2))\n")
     x = complex(x[1:Nf], x[Nf+1:end])
 end
 
 
-"""`ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)`
+"""`ls_windowpsd(y,t,freqs, nw = 10, noverlap = -1, window_func=rect)`
 
-perform widowed spectral estimation using the least-squares method. See `ls_spectral` for additional help.
+perform widowed spectral estimation using the least-squares method.
+`window_func` defaults to `Windows.rect`
+
+See `ls_spectral` for additional help.
 """
-function ls_windowpsd(y,t,freqs, nw = 10, noverlap = 0)
-    N       = length(y)
-    dpw     = floor(Int64,N/nw)
-    inds    = 1:dpw
-    if noverlap == 0
-        noverlap = round(Int64,dpw/2)
-    end
-
-    function hanningjitter(t)
-        n = length(t)
-        t = t-t[1]
-        t *= (n-1)/t[end]
-        [0.5*(1 - cos(2π*k/(n-1))) for k=t]
-    end
-    W     = DSP.hanning(dpw)
-    S     = 0.
-    for j = 1:nw
-        # W     = hanningjitter(t[inds])
-        x     = ls_spectral(y[inds],t[inds],freqs,W)
-        inds  = inds + (dpw - noverlap)
-        # Power spectrum
-        S += abs(x).^2
+function ls_windowpsd(y,t,freqs, nw = 10, noverlap = -1, window_func=rect)
+    windows = Windows2(y,t,nw,noverlap,window_func)
+    S       = zeros(length(freqs))
+    for (y,t) in windows
+        x  = ls_spectral(y,t,freqs,windows.W)
+        S += abs2(x)
     end
     return S
 end
 
-"""`ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)`
+"""`ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = -1, window_func=rect)`
 
 Perform windowed cross spectral density estimation using the least-squares method.
 
 `y` and `u` are the two signals to be analyzed and `t::AbstractVector` are their sampling points
+`window_func` defaults to `Windows.rect`
+
 See `ls_spectral` for additional help.
 """
-function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
-    N       = length(y)
-    dpw     = floor(Int64,N/nw)
-    if noverlap == 0
-        noverlap = round(Int64,dpw/2)
-    end
-    inds    = 1:dpw
-    S       = 0.
-    W       = hanning(dpw)
-    for j = 1:nw
-        xy      = ls_spectral(y[inds],t[inds],freqs,W)
-        xu      = ls_spectral(u[inds],t[inds],freqs,W)
-        inds  = inds + (dpw - noverlap)
+function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = -1, window_func=rect)
+    S       = zeros(Complex128,length(freqs))
+    windows = Windows2(y,t,nw,noverlap,window_func)
+    for (y,t) in windows
+        xy      = ls_spectral(y,t,freqs,windows.W)
+        xu      = ls_spectral(u,t,freqs,windows.W)
         # Cross spectrum
         S += xy.*conj(xu)
     end
@@ -117,39 +101,35 @@ function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = 0)
 end
 
 
-# function lscohere(y,u,t,freqs, nw = 10, noverlap = 0)
+
+
+# function lscohere(y,u,t,freqs, nw = 10, noverlap = -1)
 #         Syu     = lswindowcsd(y,u,t,freqs, nw, noverlap)
 #         Syy     = lswindowpsd(y,  t,freqs, nw, noverlap)
 #         Suu     = lswindowpsd(u,  t,freqs, nw, noverlap)
 #         Sch     = (abs(Syu).^2)./(Suu.*Syy);
 # end
 
-"""`ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)`
+"""`ls_cohere(y,u,t,freqs, nw = 10, noverlap = -1)`
 
 Perform spectral coherence estimation using the least-squares method.
 See also `ls_windowcsd` and `ls_spectral` for additional help.
 """
-function ls_cohere(y,u,t,freqs, nw = 10, noverlap = 0)
-    N       = length(y)
-    dpw     = floor(Int64,N/nw)
-    if noverlap == 0
-        noverlap = round(Int64,dpw/2)
-    end
-    inds    = 1:dpw
-    Syy       = 0.
-    Suu       = 0.
-    Syu       = Complex128(0.0)
-    W         = hanning(dpw)
-    for j = 1:nw
-        xy      = ls_spectral(y[inds],t[inds],freqs,W)
-        xu      = ls_spectral(u[inds],t[inds],freqs,W)
-        inds  = inds + (dpw - noverlap)
+function ls_cohere(y,u,t,freqs, nw = 10, noverlap = -1)
+    Syy       = zeros(length(freqs))
+    Suu       = zeros(length(freqs))
+    Syu       = zeros(Complex128,length(freqs))
+    windows   = Windows3(y,t,u,nw,noverlap,hanning)
+    for (y,t,u) in windows
+        xy      = ls_spectral(y,t,freqs,windows.W)
+        xu      = ls_spectral(u,t,freqs,windows.W)
+        inds   += (dpw - noverlap)
         # Cross spectrum
         Syu += xy.*conj(xu)
-        Syy += abs(xy).^2
-        Suu += abs(xu).^2
+        Syy += abs2(xy)
+        Suu += abs2(xu)
     end
-    Sch     = (abs(Syu).^2)./(Suu.*Syy);
+    Sch     = abs2(Syu)./(Suu.*Syy)
     return Sch
 end
 
@@ -167,8 +147,18 @@ end
     r ./=sum(r)
 end
 
+"""psd(se::SpectralExt)
+Compute the power spectral density for a SpectralExt object
+
+See also `ls_windowpsd_lpv`
 """
-`ls_spectralext(Y,X,V,w,Nv::Int; λ = 1e-8, coulomb = false, normalize=true)`
+function psd(se::SpectralExt)
+    rp = LPVSpectral.reshape_params(copy(se.x),length(se.w))
+    return sum(rp,2) |> abs2
+end
+
+"""
+`ls_spectral_lpv(Y,X,V,w,Nv::Int; λ = 1e-8, coulomb = false, normalize=true)`
 
 Perform LPV spectral estimation using the method presented in
 Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition."
@@ -182,25 +172,17 @@ See the paper for additional details.
 `λ` Regularization parameter\n
 `coulomb` Assume discontinuity at `v=0` (useful for signals where, e.g., Coulomb friction might cause issues.)\n
 `normalize` Use normalized basis functions (See paper for details).
-"""
-function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
-    w       = w[:]
-    N       = length(Y)
-    Nf      = length(w)
-    if coulomb # If Coulomb setting is activated, double the number of basis functions and clip the activation at zero velocity
-        vc      = linspace(0,maximum(abs(V)),Nv+2)
-        vc      = vc[2:end-1]
-        vc      = [-vc[end:-1:1]; vc]
-        Nv      = 2Nv
-        gamma   = Nv/(abs(vc[1]-vc[end]))
-        K       = normalize ? (V,vc) -> _Kcoulomb_norm(V,vc,gamma) : (V,vc) -> _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
-    else
-        vc      = linspace(minimum(V),maximum(V),Nv)
-        gamma   = Nv/(abs(vc[1]-vc[end]))
-        K       = normalize ? (V,vc) -> _K_norm(V,vc,gamma) : (V,vc) -> _K(V,vc,gamma)
-    end
 
-    M(w,X,V) = vec(vec(exp(im*w.*X))*K(V,vc)')'
+The method will issue a warning if less than 90% of the variance in `Y` is described by the estimated model. If this is the case, try increasing either the number of frequencies or the number of basis functions per frequency. Alternatively, try lowering the regularization parameter `λ`.
+
+See also `psd` and `ls_windowpsd_lpv`
+"""
+function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
+    w        = w[:]
+    N        = length(Y)
+    Nf       = length(w)
+    K        = basis_activation_func(V,Nv,normalize,coulomb)
+    M(w,X,V) = vec(vec(exp(im*w.*X))*K(V)')'
     A        = zeros(Complex128,N,Nf*Nv)
 
     for n = 1:N
@@ -215,5 +197,23 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
     fva = 1-var(e)/var(Y)
     fva < 0.9 && warn("Fraction of variance explained = $(fva)")
     SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
+
+end
+
+"""ls_windowpsd_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer, nw::Int=10, noverlap=0;  kwargs...)
+
+Perform windowed psd estimation using the LPV method. A rectangular window is always used.
+
+See `?ls_spectral_lpv` for additional help.
+"""
+function ls_windowpsd_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer, nw::Int=10, noverlap=0;  kwargs...)
+    S       = zeros(length(w))
+    windows = Windows3(Y,X,V,nw,noverlap,rect) # ones produces a rectangular window
+    for (y,x,v) in windows
+        x  = ls_spectral_lpv(y,x,v,w,Nv; kwargs...)
+        rp = reshape_params(x.x,length(w))
+        S += sum(rp,2) |> abs2
+    end
+    return S
 
 end
