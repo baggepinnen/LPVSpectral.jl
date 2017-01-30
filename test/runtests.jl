@@ -31,24 +31,7 @@ Nv     = 50 # Number of basis functions
 se = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
 psd = ls_windowpsd_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal)
 
-fig1 = plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel="\$x\$ (sampling points)", title="Test signal \$y_t\$ and scheduling signal \$v_t\$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
-# savetikz("gen_sig2.tex", PyPlot.gcf())
-fig2 = plot(se; dims=2, l=:solid, c = [:red :green :blue], fillalpha=0.5, nMC = 5000, fillcolor=[RGBA(1,.5,.5,.5) RGBA(.5,1,.5,.5) RGBA(.5,.5,1,.5)], linewidth=2, bounds=true, lab=["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w_test]', phase = false)
-plot!(V,dependence_matrix, title="Functional dependencies \$A(\\omega,v)\$", xlabel="\$v\$", ylabel="\$A(\\omega,v)\$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w_test]', grid=false)
-
-
-
-# Plot regular spectrum
 spectrum_lpv   = psd(se)
-fs             = N/(X[end]-X[1])
-spectrum_per   = DSP.periodogram(Y, fs=fs)
-spectrum_welch = DSP.welch_pgram(Y, fs=fs)
-plotfreqs = 1:round(Int,length(spectrum_per.freq)*maximum(w_test)/spectrum_per.freq[end])
-fig3 = plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)
-plot!(2π*collect(spectrum_welch.freq), spectrum_welch.power, lab="Welch", l=:path, m=:none, yscale=:log10, linewidth=2, c=:blue)
-plot!(w_test,spectrum_lpv/fs, xlabel="\$\\omega\$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,150), grid=false,  lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
-plot!(w_test,psd/fs, xlabel="\$\\omega\$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false,  lab="Window LPV", l=:scatter, m=:o, yscale=:log10, c=:magenta)
-
 
 si = sortperm(spectrum_lpv[:],rev=true)
 @test Set(si[1:3]) == Set([1,5,10])
