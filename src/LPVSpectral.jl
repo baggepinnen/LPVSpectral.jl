@@ -84,7 +84,9 @@ ls_spectral_lpv,
 ls_windowpsd_lpv,
 basis_activation_func,
 SpectralExt,
-psd
+psd,
+detrend,
+detrend!
 
 # Re-export
 export plot,

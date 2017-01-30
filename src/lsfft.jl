@@ -183,18 +183,18 @@ function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w
     Nf       = length(w)
     K        = basis_activation_func(V,Nv,normalize,coulomb)
     M(w,X,V) = vec(vec(exp(im*w.*X))*K(V)')'
-    A        = zeros(Complex128,N,Nf*Nv)
+    A        = zeros(Complex128,N,Nf*Nv*(coulomb ? 2 : 1))
 
     for n = 1:N
         A[n,:] = M(w,X[n],V[n])
     end
 
-    params = real_complex_bs(A,Y,λ)
+    params      = real_complex_bs(A,Y,λ)
     real_params = [real(params); imag(params)]
-    AA = [real(A) imag(A)]
-    e = AA*real_params-Y
-    Σ = var(e)*inv(AA'AA + λ*I)
-    fva = 1-var(e)/var(Y)
+    AA          = [real(A) imag(A)]
+    e           = AA*real_params-Y
+    Σ           = var(e)*inv(AA'AA + λ*I)
+    fva         = 1-var(e)/var(Y)
     fva < 0.9 && warn("Fraction of variance explained = $(fva)")
     SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
 
