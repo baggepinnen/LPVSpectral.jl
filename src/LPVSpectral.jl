@@ -14,8 +14,8 @@ tls_spectral
 ls_windowpsd
 ls_windowcsd
 ls_cohere
-ls_spectral_ext
-ls_windowpsd_ext
+ls_spectral_lpv
+ls_windowpsd_lpv
 basis_activation_func
 ```
 and re-exports the following from DSP.jl
@@ -31,7 +31,7 @@ using Plots
 """
 LPV Spectral estimation result type.
 
-See `ls_spectral_ext` for additional help.
+See `ls_spectral_lpv` for additional help.
 
 An object of this type can be plotted if `Plots.jl` is installed. Use regular Plots-syntax, with the additional attributes
 ```
@@ -80,8 +80,8 @@ tls_spectral,
 ls_windowpsd,
 ls_windowcsd,
 ls_cohere,
-ls_spectral_ext,
-ls_windowpsd_ext,
+ls_spectral_lpv,
+ls_windowpsd_lpv,
 basis_activation_func,
 SpectralExt,
 psd

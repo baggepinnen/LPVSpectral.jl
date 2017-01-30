@@ -28,8 +28,8 @@ Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N,true)
 normal = true # Use normalized basis functions
 Nv     = 50 # Number of basis functions
 
-se = ls_spectral_ext(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
-psd = ls_windowpsd_ext(Y,X,V,w_test,Nv; λ = λ, normalize = normal)
+se = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
+psd = ls_windowpsd_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal)
 
 fig1 = plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel="\$x\$ (sampling points)", title="Test signal \$y_t\$ and scheduling signal \$v_t\$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
 # savetikz("gen_sig2.tex", PyPlot.gcf())
@@ -42,18 +42,18 @@ plot!(V,dependence_matrix, title="Functional dependencies \$A(\\omega,v)\$", xla
 
 Nf = length(w_test)
 rp = LPVSpectral.reshape_params(copy(se.x),Nf)
-spectrum_ext  = sum(rp,2) |> abs2
+spectrum_lpv  = sum(rp,2) |> abs2
 fs = N/(X[end]-X[1])
 spectrum_per = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
 plotfreqs = 1:round(Int,length(spectrum_per.freq)*maximum(w_test)/spectrum_per.freq[end])
 fig3 = plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)
 plot!(2π*collect(spectrum_welch.freq), spectrum_welch.power, lab="Welch", l=:path, m=:none, yscale=:log10, linewidth=2, c=:blue)
-plot!(w_test,spectrum_ext/fs, xlabel="\$\\omega\$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,150), grid=false,  lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
+plot!(w_test,spectrum_lpv/fs, xlabel="\$\\omega\$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,150), grid=false,  lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
 plot!(w_test,psd/fs, xlabel="\$\\omega\$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false,  lab="Window LPV", l=:scatter, m=:o, yscale=:log10, c=:magenta)
 
 
-si = sortperm(spectrum_ext[:],rev=true)
+si = sortperm(spectrum_lpv[:],rev=true)
 @test Set(si[1:3]) == Set([1,5,10])
 
 si = sortperm(psd[:],rev=true)

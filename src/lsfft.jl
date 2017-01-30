@@ -150,7 +150,7 @@ end
 """psd(se::SpectralExt)
 Compute the power spectral density for a SpectralExt object
 
-See also `ls_windowpsd_ext`
+See also `ls_windowpsd_lpv`
 """
 function psd(se::SpectralExt)
     rp = LPVSpectral.reshape_params(copy(se.x),length(se.w))
@@ -158,7 +158,7 @@ function psd(se::SpectralExt)
 end
 
 """
-`ls_spectral_ext(Y,X,V,w,Nv::Int; λ = 1e-8, coulomb = false, normalize=true)`
+`ls_spectral_lpv(Y,X,V,w,Nv::Int; λ = 1e-8, coulomb = false, normalize=true)`
 
 Perform LPV spectral estimation using the method presented in
 Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition."
@@ -175,9 +175,9 @@ See the paper for additional details.
 
 The method will issue a warning if less than 90% of the variance in `Y` is described by the estimated model. If this is the case, try increasing either the number of frequencies or the number of basis functions per frequency. Alternatively, try lowering the regularization parameter `λ`.
 
-See also `psd` and `ls_windowpsd_ext`
+See also `psd` and `ls_windowpsd_lpv`
 """
-function ls_spectral_ext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
+function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
     w        = w[:]
     N        = length(Y)
     Nf       = length(w)
@@ -200,17 +200,17 @@ function ls_spectral_ext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w
 
 end
 
-"""ls_windowpsd_ext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer, nw::Int=10, noverlap=0;  kwargs...)
+"""ls_windowpsd_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer, nw::Int=10, noverlap=0;  kwargs...)
 
 Perform windowed psd estimation using the LPV method. A rectangular window is always used.
 
-See `?ls_spectral_ext` for additional help.
+See `?ls_spectral_lpv` for additional help.
 """
-function ls_windowpsd_ext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer, nw::Int=10, noverlap=0;  kwargs...)
+function ls_windowpsd_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer, nw::Int=10, noverlap=0;  kwargs...)
     S       = zeros(length(w))
     windows = Windows3(Y,X,V,nw,noverlap,rect) # ones produces a rectangular window
     for (y,x,v) in windows
-        x  = ls_spectral_ext(y,x,v,w,Nv; kwargs...)
+        x  = ls_spectral_lpv(y,x,v,w,Nv; kwargs...)
         rp = reshape_params(x.x,length(w))
         S += sum(rp,2) |> abs2
     end
