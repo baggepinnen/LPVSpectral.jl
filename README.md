@@ -29,7 +29,7 @@ using LPVSpectral, Plots, LaTeXStrings, DSP
 
 `f` is a vector of functions `f(v)` that determine the functional dependence of the spectrum upon the velocity, one function for each frequency in `w`  both the amplitude and the phase are determined from these functions
 
-`w` is a vector of frequencies for which ti estimate the spectrum
+`w` is a vector of frequencies for which to estimate the spectrum
 
 `y,v,x` are output signal, sample points and scheduling variable respectively
 """
@@ -90,10 +90,11 @@ plot!(w_test,spectrum_lpv/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral densi
 
 This package also provides tools for general least-squares spectral analysis, check out the functions
 ```
-ls_spectral    # Least-squares spectral analysis
-tls_spectral   # Total Least-squares spectral analysis
-ls_windowpsd   # Windowed Least-squares spectral analysis
-ls_windowcsd   # Windowed Least-squares cross-spectral density estimation
-ls_cohere      # Least-squares cross coherence estimation
-ls_spectralext # LPV spectral decomposition
+ls_spectral      # Least-squares spectral analysis
+tls_spectral     # Total Least-squares spectral analysis
+ls_windowpsd     # Windowed Least-squares spectral analysis
+ls_windowcsd     # Windowed Least-squares cross-spectral density estimation
+ls_cohere        # Least-squares cross coherence estimation
+ls_spectral_lpv  # LPV spectral decomposition
+ls_windowpsd_lpv # Windowed power spectral density estimation with LPV method
 ```
