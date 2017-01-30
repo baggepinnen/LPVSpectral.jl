@@ -145,7 +145,7 @@ end
 
 
 @recipe function plot_spectralext(::Type{Val{:spectralext}}, x, y, z)
-    xi,V,w,Nv,coulomb,normalize = y.x,y.V,y.w,y.Nv,y.coulomb,y.normalize
+    xi,w = y.x,y.w
     title --> "Spectrum"
     Nf = length(w)
     x = reshape_params(xi,Nf)

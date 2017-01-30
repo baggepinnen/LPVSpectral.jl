@@ -62,7 +62,7 @@ Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N, true)
 normal = true   # Use normalized basis functions
 Nv = 50         # Number of basis functions
 
-se = ls_spectralext(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
+se = ls_spectral_ext(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
 ```
 
 All that remains now is to visualize the result, along with the result of standard spectral estimation methods.
