@@ -39,12 +39,9 @@ plot!(V,dependence_matrix, title="Functional dependencies \$A(\\omega,v)\$", xla
 
 
 # Plot regular spectrum
-
-Nf = length(w_test)
-rp = LPVSpectral.reshape_params(copy(se.x),Nf)
-spectrum_lpv  = sum(rp,2) |> abs2
-fs = N/(X[end]-X[1])
-spectrum_per = DSP.periodogram(Y, fs=fs)
+spectrum_lpv   = psd(se)
+fs             = N/(X[end]-X[1])
+spectrum_per   = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
 plotfreqs = 1:round(Int,length(spectrum_per.freq)*maximum(w_test)/spectrum_per.freq[end])
 fig3 = plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)
