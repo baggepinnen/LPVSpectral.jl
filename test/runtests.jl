@@ -29,14 +29,14 @@ normal = true # Use normalized basis functions
 Nv     = 50 # Number of basis functions
 
 se = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
-psd = ls_windowpsd_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal)
+windowpsd = ls_windowpsd_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal)
 
 spectrum_lpv   = psd(se)
 
 si = sortperm(spectrum_lpv[:],rev=true)
 @test Set(si[1:3]) == Set([1,5,10])
 
-si = sortperm(psd[:],rev=true)
+si = sortperm(windowpsd[:],rev=true)
 @test Set(si[1:3]) == Set([1,5,10])
 
 ## Test ComplexNormal

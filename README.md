@@ -72,9 +72,7 @@ plot(se; normalization=:none, dims=2, l=:solid, c = [:red :green :blue], fillalp
 plot!(V,dependence_matrix, title=L"Functional dependencies $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false)
 
 # Plot regular spectrum
-Nf             = length(w_test)
-rp             = LPVSpectral.reshape_params(copy(se.x),Nf)
-spectrum_ext   = sum(rp,2) |> abs2 # See paper for details
+spectrum_ext   = psd(se) # Calculate power spectral density
 fs             = N/(X[end]-X[1]) # This is the (approximate) sampling freqency of the generated signal
 spectrum_per   = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
