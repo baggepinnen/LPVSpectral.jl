@@ -1,7 +1,7 @@
 
 """basis_activation_func(V,Nv,normalize,coulomb)
 
-Returns a function v->ϕ(v) ∈ ℜ(Nv) that calculates the activation of `Nv` basis functions spread out to cover V nicely. If coulomb is true, then we get twice the number of basis functions, 2Nv
+Returns a Function v->ϕ(v) ∈ ℜ(Nv) that calculates the activation of `Nv` basis functions spread out to cover V nicely. If coulomb is true, then we get twice the number of basis functions, 2Nv
 """
 function basis_activation_func(V,Nv,normalize,coulomb)
     if coulomb # If Coulomb setting is activated, double the number of basis functions and clip the activation at zero velocity (useful for data that exhibits a discontinuity at v=0, like coulomb friction)
@@ -27,7 +27,7 @@ function ridgereg(A,b,λ)
 end
 
 """`real_complex_bs(A,b, λ=0)`
-Replaces the backslash operator for complex arguments. Expands the A-matrix into `[real(A) imag(A)]` and performs the computation using real arithmetics. Optionally accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents a standard deviation, then λ = σ, not λ = σ²`"""
+Replaces the backslash operator For complex arguments. Expands the A-matrix into `[real(A) imag(A)]` and performs the computation using real arithmetics. Optionally accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents a standard deviation, then λ = σ, not λ = σ²`"""
 function real_complex_bs(A,b, λ=0)
     n = size(A,2)
     Ar = [real(A) imag(A)]
@@ -108,7 +108,7 @@ end
 """
 `f(cn::ComplexNormal, z)`
 
-Probability density function `f(z)` for a complex normal distribution.
+Probability density Function `f(z)` for a complex normal distribution.
 This can probably be more efficiently implemented
 """
 function pdf(cn::ComplexNormal, z)
@@ -134,4 +134,15 @@ function rand(cn::ComplexNormal,s)
     n = length(cn.m)
     z = (m' .+ randn(s,2n)*L)
     return complex(z[:,1:n],z[:,n+1:end])
+end
+
+
+function Lcurve(λvec, args...; kwargs...)
+
+    lcurve = map(λvec) do λ
+        se = ls_spectralext(args...; λ = λ, kwargs...)
+        err = fve(se) # Fraction of variance explained
+    end
+    fig = plot(λvec, lcurve, xlabel="\$\\lambda\$", ylabel="Fraction of variance explained", title="L-curve")
+    lcurve,fig
 end
