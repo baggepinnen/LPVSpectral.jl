@@ -239,9 +239,9 @@ function ls_spectralext(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,
     AA = [real(A) imag(A)]
     e = AA*real_params-Y
     Σ = var(e)*inv(AA'AA + λ*I)
-    fva = 1-var(e)/var(Y)
-    fva < 0.9 && warn("Fraction of variance explained = $(fva)")
-    SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
+    fve = 1-var(e)/var(Y)
+    fve < 0.9 && warn("Fraction of variance explained = $(fve)")
+    SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ,fve)
 
 end
 

@@ -39,6 +39,7 @@ immutable SpectralExt
     normalize::Bool
     x
     Σ
+    fve::Float64
 end
 
 

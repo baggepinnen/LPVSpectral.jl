@@ -138,10 +138,9 @@ end
 
 
 function Lcurve(λvec, args...; kwargs...)
-
     lcurve = map(λvec) do λ
         se = ls_spectralext(args...; λ = λ, kwargs...)
-        err = fve(se) # Fraction of variance explained
+        err = se.fve # Fraction of variance explained
     end
     fig = plot(λvec, lcurve, xlabel="\$\\lambda\$", ylabel="Fraction of variance explained", title="L-curve")
     lcurve,fig
