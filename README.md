@@ -17,6 +17,8 @@ An implementation of the spectral estimation method presented in
 # Installation
 `Pkg.add("LPVSpectral.jl")`
 
+For the latest changes, install using `Pkg.clone("https://github.com/baggepinnen/LPVSpectral.jl.git")`
+
 # Usage
 We demonstrate the usage of the package with a simple example using simulated data, details can be found in the paper.
 
