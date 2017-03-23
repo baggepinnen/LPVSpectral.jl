@@ -19,7 +19,7 @@ end
         x = linspace(-Fs/2,Fs/2,length(y))
     end
     delete!(d,:Fs)
-    y = abs(fft(y))
+    y = abs.(fft(y))
     (x,y)
 end
 
@@ -149,7 +149,7 @@ end
     title --> "Spectrum"
     Nf = length(w)
     x = reshape_params(xi,Nf)
-    ax  = abs2(x)
-    px  = angle(x)
+    ax  = abs2.(x)
+    px  = angle.(x)
     ax
 end

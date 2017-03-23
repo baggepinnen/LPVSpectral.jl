@@ -21,19 +21,19 @@ end
 `W` is a vector of weights, for weighted least-squares
 """
 function ls_spectral(y,t,f,W::AbstractVector)
-    N = length(y)
+    N  = length(y)
     Nf = length(f)
-    A = zeros(N,Nf)
+    A  = zeros(N,Nf)
     for n = 1:N, fn=1:Nf
-        phi = 2π*f[fn]*t[n]
-        A[n,fn] = cos(phi)
+        phi        = 2π*f[fn]*t[n]
+        A[n,fn]    = cos(phi)
         A[n,fn+Nf] = -sin(phi)
     end
 
     W = diagm([W;W])
-    x   = (A'W*A)\A'W*y
+    x = (A'W*A)\A'W*y
     info("Condition number: $(round(cond(A'*W*A),2))\n")
-    x = complex(x[1:Nf], x[Nf+1:end])
+    x = complex.(x[1:Nf], x[Nf+1:end])
 end
 
 
@@ -41,14 +41,13 @@ end
 Perform total least-squares spectral estimation using the SVD-method. See `ls_spectral` for additional help
 """
 function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
-    N = length(y)
+    N  = length(y)
     Nf = length(f)
-    A = zeros(N,2Nf)
+    A  = zeros(N,2Nf)
     for n = 1:N, fn=1:Nf
-        phi = 2π*f[fn]*t[n]
-        A[n,fn] = cos(phi)
+        phi        = 2π*f[fn]*t[n]
+        A[n,fn]    = cos(phi)
         A[n,fn+Nf] = -sin(phi)
-
     end
     AA    = [A y]
     U,S,V = svd(AA)
@@ -58,7 +57,7 @@ function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
     x     = -V21/V22
     # x = x[1:Nf] + 1im*x[Nf+1:end]
     info("Condition number: $(round(cond(AA'AA),2))\n")
-    x = complex(x[1:Nf], x[Nf+1:end])
+    x = complex.(x[1:Nf], x[Nf+1:end])
 end
 
 
@@ -74,7 +73,7 @@ function ls_windowpsd(y,t,freqs, nw = 10, noverlap = -1, window_func=rect)
     S       = zeros(length(freqs))
     for (y,t) in windows
         x  = ls_spectral(y,t,freqs,windows.W)
-        S += abs2(x)
+        S += abs2.(x)
     end
     return S
 end
@@ -92,10 +91,10 @@ function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = -1, window_func=rect)
     S       = zeros(Complex128,length(freqs))
     windows = Windows2(y,t,nw,noverlap,window_func)
     for (y,t) in windows
-        xy      = ls_spectral(y,t,freqs,windows.W)
-        xu      = ls_spectral(u,t,freqs,windows.W)
+        xy = ls_spectral(y,t,freqs,windows.W)
+        xu = ls_spectral(u,t,freqs,windows.W)
         # Cross spectrum
-        S += xy.*conj(xu)
+        S += xy.*conj.(xu)
     end
     return S
 end
@@ -116,24 +115,24 @@ Perform spectral coherence estimation using the least-squares method.
 See also `ls_windowcsd` and `ls_spectral` for additional help.
 """
 function ls_cohere(y,u,t,freqs, nw = 10, noverlap = -1)
-    Syy       = zeros(length(freqs))
-    Suu       = zeros(length(freqs))
-    Syu       = zeros(Complex128,length(freqs))
-    windows   = Windows3(y,t,u,nw,noverlap,hanning)
+    Syy     = zeros(length(freqs))
+    Suu     = zeros(length(freqs))
+    Syu     = zeros(Complex128,length(freqs))
+    windows = Windows3(y,t,u,nw,noverlap,hanning)
     for (y,t,u) in windows
         xy      = ls_spectral(y,t,freqs,windows.W)
         xu      = ls_spectral(u,t,freqs,windows.W)
         inds   += (dpw - noverlap)
         # Cross spectrum
-        Syu += xy.*conj(xu)
-        Syy += abs2(xy)
-        Suu += abs2(xu)
+        Syu .+= xy.*conj.(xu)
+        Syy .+= abs2.(xy)
+        Suu .+= abs2.(xu)
     end
-    Sch     = abs2(Syu)./(Suu.*Syy)
+    Sch = abs2.(Syu)./(Suu.*Syy)
     return Sch
 end
 
-@inline _K(V,vc,gamma) = exp(-gamma*(V.-vc).^2)
+@inline _K(V,vc,gamma) = exp.(-gamma*(V.-vc).^2)
 
 @inline function _K_norm(V,vc,gamma)
     r = _K(V,vc,gamma)
@@ -154,7 +153,7 @@ See also `ls_windowpsd_lpv`
 """
 function psd(se::SpectralExt)
     rp = LPVSpectral.reshape_params(copy(se.x),length(se.w))
-    return sum(rp,2) |> abs2
+    return abs2.(sum(rp,2))
 end
 
 """
@@ -182,19 +181,19 @@ function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w
     N        = length(Y)
     Nf       = length(w)
     K        = basis_activation_func(V,Nv,normalize,coulomb)
-    M(w,X,V) = vec(vec(exp(im*w.*X))*K(V)')'
+    M(w,X,V) = vec(vec(exp.(im*w.*X))*K(V)')'
     A        = zeros(Complex128,N,Nf*Nv)
 
     for n = 1:N
         A[n,:] = M(w,X[n],V[n])
     end
 
-    params = real_complex_bs(A,Y,λ)
-    real_params = [real(params); imag(params)]
-    AA = [real(A) imag(A)]
-    e = AA*real_params-Y
-    Σ = var(e)*inv(AA'AA + λ*I)
-    fva = 1-var(e)/var(Y)
+    params      = real_complex_bs(A,Y,λ)
+    real_params = [real.(params); imag.(params)]
+    AA          = [real.(A) imag.(A)]
+    e           = AA*real_params-Y
+    Σ           = var(e)*inv(AA'AA + λ*I)
+    fva         = 1-var(e)/var(Y)
     fva < 0.9 && warn("Fraction of variance explained = $(fva)")
     SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
 
@@ -212,7 +211,7 @@ function ls_windowpsd_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,
     for (y,x,v) in windows
         x  = ls_spectral_lpv(y,x,v,w,Nv; kwargs...)
         rp = reshape_params(x.x,length(w))
-        S += sum(rp,2) |> abs2
+        S += abs2.(sum(rp,2))
     end
     return S
 
