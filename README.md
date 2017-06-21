@@ -1,8 +1,7 @@
 # LPVSpectral
 
-[![LPVSpectral](http://pkg.julialang.org/badges/DeterministicPolicyGradient_0.4.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
-[![LPVSpectral](http://pkg.julialang.org/badges/DeterministicPolicyGradient_0.5.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
-[![LPVSpectral](http://pkg.julialang.org/badges/DeterministicPolicyGradient_0.6.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
+[![LPVSpectral](http://pkg.julialang.org/badges/LPVSpectral_0.5.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
+[![LPVSpectral](http://pkg.julialang.org/badges/LPVSpectral_0.6.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
 [![Build Status](https://travis-ci.org/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.org/baggepinnen/LPVSpectral.jl)
 
 An implementation of the spectral estimation method presented in
