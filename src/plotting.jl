@@ -18,7 +18,7 @@ end
         y = p.args[1]
         x = linspace(-Fs/2,Fs/2,length(y))
     end
-    delete!(d,:Fs)
+    delete!(plotattributes,:Fs)
     y = abs(fft(y))
     (x,y)
 end
@@ -86,11 +86,11 @@ end
         normalizer =   maximum(F, nd)
     end
     F = F./normalizer
-    delete!(d, :normalization)
-    delete!(d, :normdim)
+    delete!(plotattributes, :normalization)
+    delete!(plotattributes, :normdim)
 
     if dims == 3
-        delete!(d, :dims)
+        delete!(plotattributes, :dims)
         yguide --> "\$v\$"
         xguide --> "\$\\omega\$"
         # zguide := "\$f(v)\$"
@@ -134,10 +134,10 @@ end
         end
 
     end
-    delete!(d, :phase)
-    delete!(d, :bounds)
-    delete!(d, :nMC)
-    delete!(d, :mcmean)
+    delete!(plotattributes, :phase)
+    delete!(plotattributes, :bounds)
+    delete!(plotattributes, :nMC)
+    delete!(plotattributes, :mcmean)
 
     nothing
 
