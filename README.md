@@ -61,7 +61,7 @@ Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N, true)
 We now make use of the spectral estimation method presented in the paper:
 ```julia
 # Options for spectral estimation
-λ      = 0.02 # Regularization parmater
+λ      = 0.02 # Regularization parameter
 normal = true # Use normalized basis functions
 Nv     = 50   # Number of basis functions
 
@@ -72,11 +72,11 @@ All that remains now is to visualize the result, along with the result of standa
 
 ```julia
 plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel=L"$x$ (sampling points)", title=L"Test signal $y_t$ and scheduling signal $v_t$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
-plot(se; normalization=:none, dims=2, l=:solid, c = [:red :green :blue], fillalpha=0.5, nMC = 5000, fillcolor=[RGBA(1,.5,.5,.5) RGBA(.5,1,.5,.5) RGBA(.5,.5,1,.5)], linewidth=2, bounds=true, lab=["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w]', phase = false)
-plot!(V,dependence_matrix, title=L"Functional dependencies $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=["True \$\\omega = $(round(w/π))\\pi\$" for w in w]', grid=false)
+plot(se; normalization=:none, dims=2, l=:solid, c = [:red :green :blue], fillalpha=0.5, nMC = 5000, fillcolor=[RGBA(1,.5,.5,.5) RGBA(.5,1,.5,.5) RGBA(.5,.5,1,.5)], linewidth=2, bounds=true, lab=reshape(["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w_test],1,:), phase = false)
+plot!(V,dependence_matrix, title=L"Functional dependencies $A(\omega,v)$", xlabel=L"$v$", ylabel=L"$A(\omega,v)$", c = [:red :green :blue], l=:dot, linewidth=2,lab=reshape(["True \$\\omega = $(round(w/π))\\pi\$" for w in w],1,:), grid=false)
 
 # Plot regular spectrum
-spectrum_ext   = psd(se) # Calculate power spectral density
+spectrum_lpv   = psd(se) # Calculate power spectral density
 fs             = N/(X[end]-X[1]) # This is the (approximate) sampling freqency of the generated signal
 spectrum_per   = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
@@ -89,6 +89,7 @@ plot!(w_test,spectrum_lpv/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral densi
 ![window](figs/func_est.png)
 ![window](figs/spectrum.png)
 
+When the three frequencies in w have been identified, `w_test` can be replaced by `w` for a nicer plot.
 
 # Other functions
 

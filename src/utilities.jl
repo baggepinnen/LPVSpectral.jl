@@ -49,10 +49,10 @@ end
 Replaces the backslash operator For complex arguments. Expands the A-matrix into `[real(A) imag(A)]` and performs the computation using real arithmetics. Optionally accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents a standard deviation, then λ = σ, not λ = σ²`
 """
 function real_complex_bs(A,b, λ=0)
-    n = size(A,2)
+    n  = size(A,2)
     Ar = [real(A) imag(A)]
     xr = λ > 0 ? [Ar; λ*eye(2n)]\[b;zeros(2n)] : Ar\b
-    x = complex(xr[1:n], xr[n+1:end])
+    x  = complex.(xr[1:n], xr[n+1:end])
 end
 
 
@@ -71,19 +71,19 @@ end
 
 function ComplexNormal(X::AbstractVecOrMat,Y::AbstractVecOrMat)
     @assert size(X) == size(Y)
-    mc = complex(mean(X,1)[:], mean(Y,1)[:])
-    V = Symmetric(cov([X Y]))
+    mc  = complex.(mean(X,1)[:], mean(Y,1)[:])
+    V   = Symmetric(cov([X Y]))
     Γ,C = cn_V2ΓC(V)
     ComplexNormal(mc,Γ,C)
 end
 
 function ComplexNormal{T<:Complex}(X::AbstractVecOrMat{T})
-    ComplexNormal(real(X),imag(X))
+    ComplexNormal(real.(X),imag.(X))
 end
 
 function ComplexNormal{T<:Real}(m::AbstractVector{T},V::AbstractMatrix{T})
-    n = Int(length(m)/2)
-    mc = complex(m[1:n], m[n+1:end])
+    n   = Int(length(m)/2)
+    mc  = complex.(m[1:n], m[n+1:end])
     Γ,C = cn_V2ΓC(V)
     ComplexNormal(mc,Γ,C)
 end
@@ -94,27 +94,27 @@ function ComplexNormal{Tr<:Real, Tc<:Complex}(mc::AbstractVector{Tc},V::Abstract
 end
 
 function cn_V2ΓC{T<:Real}(V::Symmetric{T})
-    n = Int(size(V,1)/2)
+    n   = size(V,1)÷2
     Vxx = V[1:n,1:n]
     Vyy = V[n+1:end,n+1:end]
     Vxy = V[1:n,n+1:end]
     Vyx = V[n+1:end,1:n]
-    Γ = cholfact(complex(Vxx + Vyy, Vyx - Vxy))
-    C = Symmetric(complex(Vxx - Vyy, Vyx + Vxy))
+    Γ   = cholfact(complex.(Vxx + Vyy, Vyx - Vxy))
+    C   = Symmetric(complex.(Vxx - Vyy, Vyx + Vxy))
     Γ,C
 end
 
 cn_V2ΓC{T<:Real}(V::AbstractMatrix{T}) = cn_V2ΓC(Symmetric(V))
 
-@inline cn_Vxx(Γ,C) = cholfact(real(full(Γ)+C)/2)
-@inline cn_Vyy(Γ,C) = cholfact(real(full(Γ)-C)/2)
-@inline cn_Vxy(Γ,C) = cholfact(imag(-full(Γ)+C)/2)
-@inline cn_Vyx(Γ,C) = cholfact(imag(full(Γ)+C)/2)
+@inline cn_Vxx(Γ,C) = cholfact(real.(full(Γ)+C)/2)
+@inline cn_Vyy(Γ,C) = cholfact(real.(full(Γ)-C)/2)
+@inline cn_Vxy(Γ,C) = cholfact(imag.(-full(Γ)+C)/2)
+@inline cn_Vyx(Γ,C) = cholfact(imag.(full(Γ)+C)/2)
 
-@inline cn_fVxx(Γ,C) = real(full(Γ)+C)/2
-@inline cn_fVyy(Γ,C) = real(full(Γ)-C)/2
-@inline cn_fVxy(Γ,C) = imag(-full(Γ)+C)/2
-@inline cn_fVyx(Γ,C) = imag(full(Γ)+C)/2
+@inline cn_fVxx(Γ,C) = real.(full(Γ)+C)/2
+@inline cn_fVyy(Γ,C) = real.(full(Γ)-C)/2
+@inline cn_fVxy(Γ,C) = imag.(-full(Γ)+C)/2
+@inline cn_fVyx(Γ,C) = imag.(full(Γ)+C)/2
 
 @inline cn_Vs(Γ,C) = cn_Vxx(Γ,C),cn_Vyy(Γ,C),cn_Vxy(Γ,C),cn_Vyx(Γ,C)
 @inline cn_fV(Γ,C) = [cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)]
@@ -153,5 +153,5 @@ function rand(cn::ComplexNormal,s)
     m = [real(cn.m); imag(cn.m)]
     n = length(cn.m)
     z = (m' .+ randn(s,2n)*L)
-    return complex(z[:,1:n],z[:,n+1:end])
+    return complex.(z[:,1:n],z[:,n+1:end])
 end

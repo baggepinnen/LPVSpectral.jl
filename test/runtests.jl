@@ -10,7 +10,7 @@ function generate_signal(f,w,N, modphase=false)
 
     # generate output signal
     # phase_matrix
-    dependence_matrix = Float64[f[(i-1)%length(f)+1](v) for v in v, i in eachindex(w)] # N x nw
+    dependence_matrix = Float64[f[(i-1)%length(f)+1].(v) for v in v, i in eachindex(w)] # N x nw
     frequency_matrix = [cos(w*x -0.5modphase*(dependence_matrix[i,j])) for (i,x) in enumerate(x), (j,w) in enumerate(w)] # N x nw
     y = sum(dependence_matrix.*frequency_matrix,2)[:] # Sum over all frequencies
     y += 0.1randn(size(y))
