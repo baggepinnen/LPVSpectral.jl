@@ -19,7 +19,7 @@ end
         x = linspace(-Fs/2,Fs/2,length(y))
     end
     delete!(plotattributes,:Fs)
-    y = abs(fft(y))
+    y = abs.(fft(y))
     (x,y)
 end
 
@@ -38,8 +38,8 @@ end
     xi,V,X,w,Nv,coulomb,normalize = se.x,se.V,se.X,se.w,se.Nv,se.coulomb,se.normalize
     Nf = length(w)
     x  = reshape_params(xi,Nf)
-    ax = abs(x)
-    px = angle(x)
+    ax = abs.(x)
+    px = angle.(x)
     K  = basis_activation_func(V,Nv,normalize,coulomb)
 
     fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
@@ -69,7 +69,7 @@ end
         end
     end
     FB = sort(FB,3)
-    lim = 1000
+    lim = 10
     FBl = FB[:,:,nMC ÷ lim]
     FBu = FB[:,:,nMC - (nMC ÷ lim)]
     FBm = squeeze(mean(FB,3),3)
@@ -97,7 +97,7 @@ end
         for i = 1:Nf
             @series begin
                 seriestype := path3d
-                (fg[i,:]'[:],vg[i,:]'[:],F[i,:]'[:])
+                (fg[i,:],vg[i,:],F[i,:])
             end
         end
     else
@@ -108,12 +108,12 @@ end
             title --> "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
             @series begin
                 label --> "\$\\omega = $(round(fg[i,1]/pi,1))\\pi\$"
-                m = mcmean ? FBm[i,:]'[:] : F[i,:]'[:]
+                m = mcmean ? FBm[i,:] : F[i,:]
                 if bounds
-                    # fillrange := FBu[i,:]'[:]
-                    ribbon := (-FBl[i,:]'[:] + m, FBu[i,:]'[:] - m)
+                    # fillrange := FBu[i,:]
+                    ribbon := (-FBl[i,:] + m, FBu[i,:] - m)
                 end
-                (vg[i,:]'[:],m)
+                (vg[i,:],m)
             end
         end
         if phase
@@ -124,11 +124,11 @@ end
                 @series begin
                     label --> "\$\\phi\$"
                     fillalpha := 0.1
-                    pi = P[i,:]'[:]
+                    pi = P[i,:]
                     if bounds
-                        ribbon := (-PBl[i,:]'[:] + pi, PBu[i,:]'[:] - pi)
+                        ribbon := (-PBl[i,:] + pi, PBu[i,:] - pi)
                     end
-                    (vg[i,:]'[:],pi)
+                    (vg[i,:],pi)
                 end
             end
         end
@@ -149,7 +149,7 @@ end
     title --> "Spectrum"
     Nf = length(w)
     x = reshape_params(xi,Nf)
-    ax  = abs2(x)
-    px  = angle(x)
+    ax  = abs2.(x)
+    px  = angle.(x)
     ax
 end
