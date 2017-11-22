@@ -39,6 +39,12 @@ si = sortperm(spectrum_lpv[:],rev=true)
 si = sortperm(windowpsd[:],rev=true)
 @test Set(si[1:3]) == Set([1,5,10])
 
+tre = [1,2,3]
+@test detrend(tre) == [-1,0,1]
+@test tre == [1,2,3] # Shouldn't have changed
+detrend!(tre)
+@test tre == [-1,0,1] # Should have changed
+
 ## Test ComplexNormal
 println("Testing Complex Normal")
 n  = 10

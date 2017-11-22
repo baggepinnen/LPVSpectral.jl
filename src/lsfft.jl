@@ -146,7 +146,7 @@ end
 end
 
 """psd(se::SpectralExt)
-Compute the power spectral density for a SpectralExt object
+Compute the power spectral density For a SpectralExt object
 
 See also `ls_windowpsd_lpv`
 """
@@ -160,7 +160,7 @@ end
 
 Perform LPV spectral estimation using the method presented in
 Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition."
-See the paper for additional details.
+See the paper For additional details.
 
 `Y` output\n
 `X` sample locations\n

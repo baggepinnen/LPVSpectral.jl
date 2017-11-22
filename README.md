@@ -1,5 +1,7 @@
 # LPVSpectral
 
+[![LPVSpectral](http://pkg.julialang.org/badges/LPVSpectral_0.5.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
+[![LPVSpectral](http://pkg.julialang.org/badges/LPVSpectral_0.6.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
 [![Build Status](https://travis-ci.org/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.org/baggepinnen/LPVSpectral.jl)
 
 An implementation of the spectral estimation method presented in
@@ -17,6 +19,8 @@ An implementation of the spectral estimation method presented in
 # Installation
 `Pkg.add("LPVSpectral.jl")`
 
+For the latest changes, install using `Pkg.clone("https://github.com/baggepinnen/LPVSpectral.jl.git")`
+
 # Usage
 We demonstrate the usage of the package with a simple example using simulated data, details can be found in the paper.
 
@@ -29,7 +33,7 @@ using LPVSpectral, Plots, LaTeXStrings, DSP
 
 `f` is a vector of functions `f(v)` that determine the functional dependence of the spectrum upon the velocity, one function for each frequency in `w`  both the amplitude and the phase are determined from these functions
 
-`w` is a vector of frequencies for which ti estimate the spectrum
+`w` is a vector of frequencies for which to estimate the spectrum
 
 `y,v,x` are output signal, sample points and scheduling variable respectively
 """
@@ -91,10 +95,11 @@ When the three frequencies in w have been identified, `w_test` can be replaced b
 
 This package also provides tools for general least-squares spectral analysis, check out the functions
 ```
-ls_spectral    # Least-squares spectral analysis
-tls_spectral   # Total Least-squares spectral analysis
-ls_windowpsd   # Windowed Least-squares spectral analysis
-ls_windowcsd   # Windowed Least-squares cross-spectral density estimation
-ls_cohere      # Least-squares cross coherence estimation
-ls_spectralext # LPV spectral decomposition
+ls_spectral      # Least-squares spectral analysis
+tls_spectral     # Total Least-squares spectral analysis
+ls_windowpsd     # Windowed Least-squares spectral analysis
+ls_windowcsd     # Windowed Least-squares cross-spectral density estimation
+ls_cohere        # Least-squares cross coherence estimation
+ls_spectral_lpv  # LPV spectral decomposition
+ls_windowpsd_lpv # Windowed power spectral density estimation with LPV method
 ```
