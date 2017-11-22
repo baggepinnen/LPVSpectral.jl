@@ -23,15 +23,15 @@ end
 function ls_spectral(y,t,f,W::AbstractVector)
     N  = length(y)
     Nf = length(f)
-    A  = zeros(N,Nf)
-    for n = 1:N, fn=1:Nf
+    A  = zeros(N,2Nf)
+    for fn=1:Nf, n = 1:N
         phi        = 2π*f[fn]*t[n]
         A[n,fn]    = cos(phi)
         A[n,fn+Nf] = -sin(phi)
     end
 
-    W = diagm([W;W])
-    x = (A'W*A)\A'W*y
+    W = diagm(W)
+    x = (A'W*A)\(A'W)*y
     info("Condition number: $(round(cond(A'*W*A),2))\n")
     x = complex.(x[1:Nf], x[Nf+1:end])
 end
@@ -122,7 +122,6 @@ function ls_cohere(y,u,t,freqs, nw = 10, noverlap = -1)
     for (y,t,u) in windows
         xy      = ls_spectral(y,t,freqs,windows.W)
         xu      = ls_spectral(u,t,freqs,windows.W)
-        inds   += (dpw - noverlap)
         # Cross spectrum
         Syu .+= xy.*conj.(xu)
         Syy .+= abs2.(xy)
