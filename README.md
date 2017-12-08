@@ -11,10 +11,10 @@ An implementation of the spectral estimation method presented in
   title        = {Linear Parameter-Varying Spectral Decomposition},
   author       = {Bagge Carlson, Fredrik and Robertsson, Anders and Johansson, Rolf},
   booktitle    = {2017 American Control Conference (ACC)},
-  pubstate     = {accepted},
   year         = {2017},
 }
 ```
+as well as a toolbox for general least-squares spectral estimation, see "Other functions" below.
 
 # Installation
 `Pkg.add("LPVSpectral.jl")`
