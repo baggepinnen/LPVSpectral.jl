@@ -1,12 +1,12 @@
 module TestLPV
 using LPVSpectral
-using Base.Test
+using Test
 using Plots, DSP
 # write your own tests here
 
 function generate_signal(f,w,N, modphase=false)
     x = sort(10rand(N)) # Sample points
-    v = linspace(0,1,N) # Scheduling variable
+    v = range(0, stop=1, length=N) # Scheduling variable
 
     # generate output signal
     # phase_matrix

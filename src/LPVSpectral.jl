@@ -54,7 +54,7 @@ x                   # The estimated parameters
 Σ                   # Covariance of the estimated parameters
 ```
 """
-immutable SpectralExt
+struct SpectralExt
     Y::AbstractVector
     X::AbstractVector
     V::AbstractVector
