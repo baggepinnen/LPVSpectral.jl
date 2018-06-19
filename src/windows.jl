@@ -2,7 +2,7 @@
 """Windows2(y,t,nw,noverlap,window_func)
 noverlap = -1 sets the noverlap to dpw/2
 """
-immutable Windows2
+struct Windows2
     y::AbstractVector
     t::AbstractVector
     nw::Int
@@ -42,7 +42,7 @@ Base.length(w::Windows2) = w.nw;
 """Windows3(y,t,v,nw::Integer,noverlap::Integer,window_func::Function)
 noverlap = -1 sets the noverlap to dpw/2
 """
-immutable Windows3
+struct Windows3
     y::AbstractVector
     t::AbstractVector
     v::AbstractVector

@@ -39,7 +39,7 @@ using LPVSpectral, Plots, LaTeXStrings, DSP
 """
 function generate_signal(f,w,N, modphase=false)
     x = sort(10rand(N)) # Sample points
-    v = linspace(0,1,N) # Scheduling variable
+    v = range(0, stop=1, length=N) # Scheduling variable
 
     # generate output signal
     dependence_matrix = Float64[f[(i-1)%length(f)+1](v) for v in v, i in eachindex(w)] # N x nw
