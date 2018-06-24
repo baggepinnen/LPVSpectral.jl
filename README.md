@@ -100,6 +100,7 @@ When the three frequencies in w have been identified, `w_test` can be replaced b
 This package also provides tools for general least-squares spectral analysis, check out the functions
 ```
 ls_spectral             # Least-squares spectral analysis
+ls_sparse_spectral      # Least-squares sparse (L0) spectral analysis (uses ADMM)
 tls_spectral            # Total Least-squares spectral analysis
 ls_windowpsd            # Windowed Least-squares spectral analysis
 ls_windowcsd            # Windowed Least-squares cross-spectral density estimation

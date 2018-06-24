@@ -17,7 +17,7 @@ struct Windows2
             noverlap = round(Int64,dpw/2)
         end
         W = window_func(dpw)
-        Windows2(y,t,nw,dpw,noverlap,W)
+        new(y,t,nw,dpw,noverlap,W)
     end
 end
 
@@ -25,7 +25,7 @@ end
 Base.start(::Windows2) = 0
 
 function Base.next(w::Windows2, state)
-    if state < w.nw-1
+    if state < w.nw
         inds =  (1:w.dpw)+state*(w.dpw-w.noverlap)
     else
         inds =  state*(w.dpw-w.noverlap):length(w.y)

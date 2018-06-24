@@ -7,6 +7,8 @@ perform spectral estimation using the least-squares method
 `y` is the signal to be analyzed
 `t` is the sampling points
 `f` is a vector of frequencies
+
+See also `ls_sparse_spectral` `tls_spectral`
 """
 function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
     N = length(y)
@@ -31,8 +33,8 @@ function ls_spectral(y,t,f,W::AbstractVector)
         A[n,fn+Nf] = -sin(phi)
     end
 
-    W = diagm(W)
-    x = (A'W*A)\(A'W)*y
+    Wd = Diagonal(W)
+    x = (A'Wd*A)\(A'Wd)*y
     info("Condition number: $(round(cond(A'*W*A), digits=2))\n")
     x = complex.(x[1:Nf], x[Nf+1:end])
 end
@@ -62,38 +64,44 @@ function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
 end
 
 
-"""`ls_windowpsd(y,t,freqs, nw = 10, noverlap = -1, window_func=rect)`
+"""`ls_windowpsd(y,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)`
 
 perform widowed spectral estimation using the least-squares method.
 `window_func` defaults to `Windows.rect`
 
+`estimator` is the spectral estimatio function to use, default is `ls_spectral`. For sparse estimation, try
+`estimator = ls_sparse_spectral` See `ls_sparse_spectral` for more help. `kwargs` are passed to `estimator`.
+
 See `ls_spectral` for additional help.
 """
-function ls_windowpsd(y,t,freqs, nw = 10, noverlap = -1, window_func=rect)
+function ls_windowpsd(y,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
     windows = Windows2(y,t,nw,noverlap,window_func)
     S       = zeros(length(freqs))
-    for (y,t) in windows
-        x  = ls_spectral(y,t,freqs,windows.W)
+    for (yi,ti) in windows
+        x  = estimator(yi,ti,freqs,windows.W; kwargs...)
         S += abs2.(x)
     end
     return S
 end
 
-"""`ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = -1, window_func=rect)`
+"""`ls_windowcsd(y,u,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)`
 
 Perform windowed cross spectral density estimation using the least-squares method.
 
 `y` and `u` are the two signals to be analyzed and `t::AbstractVector` are their sampling points
 `window_func` defaults to `Windows.rect`
 
+`estimator` is the spectral estimatio function to use, default is `ls_spectral`. For sparse estimation, try
+`estimator = ls_sparse_spectral` See `ls_sparse_spectral` for more help.
+
 See `ls_spectral` for additional help.
 """
-function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = -1, window_func=rect)
+function ls_windowcsd(y,u,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
     S       = zeros(ComplexF64,length(freqs))
     windows = Windows2(y,t,nw,noverlap,window_func)
     for (y,t) in windows
-        xy = ls_spectral(y,t,freqs,windows.W)
-        xu = ls_spectral(u,t,freqs,windows.W)
+        xy = estimator(y,t,freqs,windows.W; kwargs...)
+        xu = estimator(u,t,freqs,windows.W; kwargs...)
         # Cross spectrum
         S += xy.*conj.(xu)
     end
@@ -110,19 +118,22 @@ end
 #         Sch     = (abs(Syu).^2)./(Suu.*Syy);
 # end
 
-"""`ls_cohere(y,u,t,freqs, nw = 10, noverlap = -1)`
+"""`ls_cohere(y,u,t,freqs; nw = 10, noverlap = -1, estimator=ls_spectral, kwargs...)`
 
 Perform spectral coherence estimation using the least-squares method.
+
+`estimator` is the spectral estimatio function to use, default is `ls_spectral`. For sparse estimation, try
+`estimator = ls_sparse_spectral` See `ls_sparse_spectral` for more help.
 See also `ls_windowcsd` and `ls_spectral` for additional help.
 """
-function ls_cohere(y,u,t,freqs, nw = 10, noverlap = -1)
+function ls_cohere(y,u,t,freqs; nw = 10, noverlap = -1, estimator=ls_spectral, kwargs...)
     Syy     = zeros(length(freqs))
     Suu     = zeros(length(freqs))
     Syu     = zeros(ComplexF64,length(freqs))
     windows = Windows3(y,t,u,nw,noverlap,hanning)
     for (y,t,u) in windows
-        xy      = ls_spectral(y,t,freqs,windows.W)
-        xu      = ls_spectral(u,t,freqs,windows.W)
+        xy      = estimator(y,t,freqs,windows.W; kwargs...)
+        xu      = estimator(u,t,freqs,windows.W; kwargs...)
         # Cross spectrum
         Syu .+= xy.*conj.(xu)
         Syy .+= abs2.(xy)

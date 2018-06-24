@@ -82,7 +82,6 @@ function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
     λ          = 1,
     kwargs...)
 
-
     N = length(y)
     Nf = length(f)
     A = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
@@ -90,18 +89,36 @@ function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
     params = real_complex_bs(A,y,λ) # Initialize with standard least squares
     x      = [real.(params); imag.(params)]
     Φ      = [real.(A) imag.(A)]
-    e      = Φ*x-y
-    Σ      = var(e)*inv(Φ'Φ + λ*I)
-
-    nparams = size(Φ,2) # 2Nf*Nv
-    z       = zeros(size(x))
 
     proxf = ProximalOperators.LeastSquares(Φ,y, iterative=true)
-
     proxg = NormL0(λ)
 
     x = ADMM(x, proxf, proxg; kwargs...)
     params = complex(x[1:end÷2], x[end÷2+1:end])
+end
+
+function ls_sparse_spectral(y,t,f, W;
+    λ          = 1,
+    kwargs...)
+
+    N = length(y)
+    Nf = length(f)
+    Φ  = zeros(N,2Nf)
+    for fn=1:Nf, n = 1:N
+        phi        = 2π*f[fn]*t[n]
+        Φ[n,fn]    = cos(phi)
+        Φ[n,fn+Nf] = -sin(phi)
+    end
+
+    x      = zeros(2Nf)
+    Wd     = Diagonal(W)
+    Q      = Φ'Wd*Φ
+    q      = -Φ'Wd*y
+    proxf  = ProximalOperators.QuadraticIterative(2Q,2q)
+
+    proxg = NormL0(λ)
+    x = ADMM(x, proxf, proxg; kwargs...)
+    params = complex.(x[1:end÷2], x[end÷2+1:end])
 end
 
 """
@@ -122,7 +139,7 @@ function ADMM(x,proxf,proxg;
     @assert 0 ≤ μ ≤ 1 "μ should be ≤ 1"
 
     z     = zeros(size(x))
-    u     = zeros(size(z))
+    u     = zeros(size(x))
     zu    = similar(u)
     xu    = similar(u)
     xz    = similar(u)
