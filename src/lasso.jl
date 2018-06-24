@@ -2,13 +2,8 @@ using ProximalOperators
 
 """
 `ls_sparse_spectral_lpv(Y,X,V,w,Nv::Int; λ = 1, coulomb = false, normalize=true,
-            coulomb    = false,
-            normalize  = true,
-            iters      = 10000,   # ADMM maximum number of iterations
-            tol        = 1e-5,    # ADMM tolerance
-            printerval = 100,     # Print this often
-            cb(x)      = nothing, # Callback function
-            μ          = 0.05`)
+coulomb    = false,
+normalize  = true)
 
 Perform LPV spectral estimation using the method presented in
 Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition."
@@ -27,26 +22,21 @@ See the paper or README For additional details.
 `coulomb` Assume discontinuity at `v=0` (useful For signals where, e.g., Coulomb friction might cause issues.)\n
 `normalize` Use normalized basis functions (See paper For details).
 
+See `?ADMM` for keyword arguments to control the solver.
 
 See also `psd`, `ls_spectral_lpv` and `ls_windowpsd_lpv`
 """
 function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::AbstractVector,
     w, Nv::Integer;
-    coulomb = false,
-    normalize=true,
-    iters      = 10000,
-    tol        = 1e-5,
-    printerval = 100,
-    cb         = nothing,
-    λ          = 1,
-    μ          = 0.05,
+    coulomb   = false,
+    normalize = true,
     kwargs...)
 
 
     w        = w[:]
     T        = length(y)
     Nf       = length(w)
-    K        = LPVSpectral.basis_activation_func(V,Nv,normalize,coulomb)
+    K        = basis_activation_func(V,Nv,normalize,coulomb)
     M(w,X,V) = vec(vec(exp.(im*w.*X))*K(V)')'
     As       = zeros(Complex128,T,Nf*Nv)
 
@@ -54,18 +44,13 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
         As[n,:] = M(w,X[n],V[n])
     end
 
-    params = LPVSpectral.real_complex_bs(As,y,λ) # Initialize with standard least squares
+    params = real_complex_bs(As,y,λ) # Initialize with standard least squares
     inds   = reshape(1:2Nf*Nv, Nf, :)'[:]        # Permute parameters so that groups are adjacent
     inds   = vcat(inds...)
     x      = [real.(params); imag.(params)][inds]
     Φ      = [real.(As) imag.(As)][:,inds]
-    e      = Φ*x-y
-    Σ      = var(e)*inv(Φ'Φ + λ*I)
 
     nparams = size(Φ,2) # 2Nf*Nv
-    z       = zeros(size(x))
-
-    @assert 0 ≤ μ ≤ 1 "μ should be ≤ 1"
 
     Q     = Φ'Φ
     q     = -Φ'y
@@ -75,6 +60,68 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
     indsg = ntuple(f->((f-1)*2Nv+1:f*2Nv, ) ,Nf)
     proxg = SlicedSeparableSum(gs, indsg)
 
+    x = ADMM(x, proxf, proxg; kwargs...)
+
+    x = x[sortperm(inds)] # Sortperm is inverse of inds
+    params = complex.(x[1:end÷2], x[end÷2+1:end])
+    SpectralExt(y, X, V, w, Nv, λ, coulomb, normalize, params, nothing)
+end
+
+
+
+"""`ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=1, kwargs...)`
+
+perform spectral estimation using the least-squares method with a L0 pseudo-norm penalty on the
+Fourier coefficients. Promotes a sparse spectrum. See `?ADMM` for keyword arguments to control the solver.
+
+`y` is the signal to be analyzed
+`t` is the sampling points
+`f` is a vector of frequencies
+"""
+function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
+    λ          = 1,
+    kwargs...)
+
+
+    N = length(y)
+    Nf = length(f)
+    A = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
+
+    params = real_complex_bs(A,y,λ) # Initialize with standard least squares
+    x      = [real.(params); imag.(params)]
+    Φ      = [real.(A) imag.(A)]
+    e      = Φ*x-y
+    Σ      = var(e)*inv(Φ'Φ + λ*I)
+
+    nparams = size(Φ,2) # 2Nf*Nv
+    z       = zeros(size(x))
+
+    proxf = ProximalOperators.LeastSquares(Φ,y, iterative=true)
+
+    proxg = NormL0(λ)
+
+    x = ADMM(x, proxf, proxg; kwargs...)
+    params = complex(x[1:end÷2], x[end÷2+1:end])
+end
+
+"""
+    ADMM(x,proxf,proxg;
+    iters      = 10000,   # ADMM maximum number of iterations
+    tol        = 1e-5,    # ADMM tolerance
+    printerval = 100,     # Print this often
+    cb(x)      = nothing, # Callback function
+    μ          = 0.05`)   # ADMM tuning parameter. If results oscillate, lower this value.
+"""
+function ADMM(x,proxf,proxg;
+    iters      = 10000,
+    tol        = 1e-5,
+    printerval = 100,
+    cb         = nothing,
+    μ          = 0.05)
+
+    @assert 0 ≤ μ ≤ 1 "μ should be ≤ 1"
+
+    z     = zeros(size(x))
     u     = zeros(size(z))
     zu    = similar(u)
     xu    = similar(u)
@@ -100,7 +147,5 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
             break
         end
     end
-    x = x[sortperm(inds)] # Sortperm is inverse of inds
-    params = complex(x[1:end÷2], x[end÷2+1:end])
-    LPVSpectral.SpectralExt(y, X, V, w, Nv, λ, coulomb, normalize, params, nothing)
+    x
 end

@@ -79,6 +79,7 @@ include("lasso.jl")
 # Functions
 export ls_spectral,
 tls_spectral,
+ls_sparse_spectral,
 ls_windowpsd,
 ls_windowcsd,
 ls_cohere,

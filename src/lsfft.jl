@@ -11,9 +11,10 @@ perform spectral estimation using the least-squares method
 function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
     N = length(y)
     Nf = length(f)
-    A = [exp(2π*f[fn]*t[n]) for n = 1:N, fn = 1:Nf]
+    A = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
     x = real_complex_bs(A,b,λ)
     info("Condition number: $(round(cond(A'A), digits=2))\n")
+    x
 end
 
 
