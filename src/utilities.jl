@@ -24,14 +24,14 @@ Returns a func v->ϕ(v) ∈ ℜ(Nv) that calculates the activation of `Nv` basis
 """
 function basis_activation_func(V,Nv,normalize,coulomb)
     if coulomb # If Coulomb setting is activated, double the number of basis functions and clip the activation at zero velocity (useful for data that exhibits a discontinuity at v=0, like coulomb friction)
-        vc      = linspace(0,maximum(abs(V)),Nv+2)
+        vc      = range(0, stop=maximum(abs(V)), length=Nv+2)
         vc      = vc[2:end-1]
         vc      = [-vc[end:-1:1]; vc]
         Nv      = 2Nv
         gamma   = Nv/(abs(vc[1]-vc[end]))
         K       = normalize ? V -> _Kcoulomb_norm(V,vc,gamma) : V -> _Kcoulomb(V,vc,gamma) # Use coulomb basis function instead
     else
-        vc      = linspace(minimum(V),maximum(V),Nv)
+        vc      = range(minimum(V), stop=maximum(V), length=Nv)
         gamma   = Nv/(abs(vc[1]-vc[end]))
         K       = normalize ? V -> _K_norm(V,vc,gamma) : V -> _K(V,vc,gamma)
     end
@@ -63,7 +63,7 @@ reshape_params(x,Nf) = reshape(x, Nf,round(Int,length(x)/Nf))
 ## Complex Normal
 import Base.rand
 
-type ComplexNormal{T<:Complex}
+mutable struct ComplexNormal{T<:Complex}
     m::AbstractVector{T}
     Γ::Base.LinAlg.Cholesky
     C::Symmetric{T}
@@ -77,23 +77,23 @@ function ComplexNormal(X::AbstractVecOrMat,Y::AbstractVecOrMat)
     ComplexNormal(mc,Γ,C)
 end
 
-function ComplexNormal{T<:Complex}(X::AbstractVecOrMat{T})
+function ComplexNormal(X::AbstractVecOrMat{T}) where T<:Complex
     ComplexNormal(real.(X),imag.(X))
 end
 
-function ComplexNormal{T<:Real}(m::AbstractVector{T},V::AbstractMatrix{T})
+function ComplexNormal(m::AbstractVector{T},V::AbstractMatrix{T}) where T<:Real
     n   = Int(length(m)/2)
     mc  = complex.(m[1:n], m[n+1:end])
     Γ,C = cn_V2ΓC(V)
     ComplexNormal(mc,Γ,C)
 end
 
-function ComplexNormal{Tr<:Real, Tc<:Complex}(mc::AbstractVector{Tc},V::AbstractMatrix{Tr})
+function ComplexNormal(mc::AbstractVector{Tc},V::AbstractMatrix{Tr}) where {Tr<:Real, Tc<:Complex}
     Γ,C = cn_V2ΓC(V)
     ComplexNormal(mc,Γ,C)
 end
 
-function cn_V2ΓC{T<:Real}(V::Symmetric{T})
+function cn_V2ΓC(V::Symmetric{T}) where T<:Real
     n   = size(V,1)÷2
     Vxx = V[1:n,1:n]
     Vyy = V[n+1:end,n+1:end]
@@ -104,7 +104,7 @@ function cn_V2ΓC{T<:Real}(V::Symmetric{T})
     Γ,C
 end
 
-cn_V2ΓC{T<:Real}(V::AbstractMatrix{T}) = cn_V2ΓC(Symmetric(V))
+cn_V2ΓC(V::AbstractMatrix{T}) where {T<:Real} = cn_V2ΓC(Symmetric(V))
 
 @inline cn_Vxx(Γ,C) = cholfact(real.(full(Γ)+C)/2)
 @inline cn_Vyy(Γ,C) = cholfact(real.(full(Γ)-C)/2)
