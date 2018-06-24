@@ -47,6 +47,7 @@ end
     FB = zeros(size(fg)...,nMC)
     P  = zeros(size(fg))
     PB = zeros(size(fg)...,nMC)
+    bounds = bounds && se.Σ != nothing
     if bounds
         cn = ComplexNormal(se.x,se.Σ)
         zi = rand(cn,nMC) # Draw several random parameters from the posterior distribution
@@ -108,7 +109,7 @@ end
             title --> "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
             @series begin
                 label --> "\$\\omega = $(round(fg[i,1]/pi,1))\\pi\$"
-                m = mcmean ? FBm[i,:] : F[i,:]
+                m = mcmean && bounds ? FBm[i,:] : F[i,:]
                 if bounds
                     # fillrange := FBu[i,:]
                     ribbon := (-FBl[i,:] + m, FBu[i,:] - m)

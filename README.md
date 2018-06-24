@@ -62,10 +62,12 @@ We now make use of the spectral estimation method presented in the paper:
 ```julia
 # Options for spectral estimation
 λ      = 0.02 # Regularization parameter
+λs     = 1    # Regularization parameter group-lasso
 normal = true # Use normalized basis functions
 Nv     = 50   # Number of basis functions
 
-se = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
+se  = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
+ses = ls_sparse_spectral_lpv(Y,X,V,w_test,Nv; λ = λs, normalize = normal, tol=1e-8, printerval=10, iters=6000) # Same as above but with a group-lasso penalty on frequencies, promoting a solution with a sparse set of frequencies. Can be used to identify a sparse spectrum, i.e. to find w among w_test.
 ```
 
 All that remains now is to visualize the result, along with the result of standard spectral estimation methods.
@@ -77,29 +79,32 @@ plot!(V,dependence_matrix, title=L"Functional dependencies $A(\omega,v)$", xlabe
 
 # Plot regular spectrum
 spectrum_lpv   = psd(se) # Calculate power spectral density
+spectrum_lpvs  = psd(ses) # Calculate sparse power spectral density
 fs             = N/(X[end]-X[1]) # This is the (approximate) sampling freqency of the generated signal
 spectrum_per   = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
 plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)
 plot!(2π*collect(spectrum_welch.freq), spectrum_welch.power, lab="Welch", l=:path, m=:none, yscale=:log10, linewidth=2, c=:blue)
 plot!(w_test,spectrum_lpv/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false, lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
+plot!(w_test,spectrum_lpvs/fs, lab="Sparse LPV", l=:scatter, m=:o, c=:green)
 ```
 
 ![window](figs/gen_sig.png)
 ![window](figs/func_est.png)
 ![window](figs/spectrum.png)
 
-When the three frequencies in w have been identified, `w_test` can be replaced by `w` for a nicer plot.
+When the three frequencies in w have been identified, `w_test` can be replaced by `w` for a nicer plot. As indicated by the last figure, the sparse estimate using group-lasso is better at identifying the three frequency components present (with a small bias in the estimation of the true frequencies).
 
 # Other functions
 
 This package also provides tools for general least-squares spectral analysis, check out the functions
 ```
-ls_spectral      # Least-squares spectral analysis
-tls_spectral     # Total Least-squares spectral analysis
-ls_windowpsd     # Windowed Least-squares spectral analysis
-ls_windowcsd     # Windowed Least-squares cross-spectral density estimation
-ls_cohere        # Least-squares cross coherence estimation
-ls_spectral_lpv  # LPV spectral decomposition
-ls_windowpsd_lpv # Windowed power spectral density estimation with LPV method
+ls_spectral             # Least-squares spectral analysis
+tls_spectral            # Total Least-squares spectral analysis
+ls_windowpsd            # Windowed Least-squares spectral analysis
+ls_windowcsd            # Windowed Least-squares cross-spectral density estimation
+ls_cohere               # Least-squares cross coherence estimation
+ls_spectral_lpv         # LPV spectral decomposition
+ls_sparse_spectral_lpv  # LPV spectral decomposition with group-lasso penalty on frequencies (uses ADMM)
+ls_windowpsd_lpv        # Windowed power spectral density estimation with LPV method
 ```

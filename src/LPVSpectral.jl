@@ -15,6 +15,7 @@ ls_windowpsd
 ls_windowcsd
 ls_cohere
 ls_spectral_lpv
+ls_sparse_spectral_lpv
 ls_windowpsd_lpv
 basis_activation_func
 ```
@@ -27,6 +28,7 @@ Periodogram types and SpectralExt type can be plotted using `plot(x::SpectralExt
 module LPVSpectral
 using DSP
 using Plots
+using ProximalOperators
 
 """
 LPV Spectral estimation result type.
@@ -72,7 +74,7 @@ include("utilities.jl")
 include("windows.jl")
 include("plotting.jl")
 include("lsfft.jl")
-
+include("lasso.jl")
 
 # Functions
 export ls_spectral,

@@ -173,7 +173,7 @@ See the paper For additional details.
 
 The method will issue a warning if less than 90% of the variance in `Y` is described by the estimated model. If this is the case, try increasing either the number of frequencies or the number of basis functions per frequency. Alternatively, try lowering the regularization parameter `λ`.
 
-See also `psd` and `ls_windowpsd_lpv`
+See also `psd`, `ls_sparse_spectral_lpv` and `ls_windowpsd_lpv`
 """
 function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer;  λ = 1e-8, coulomb = false, normalize=true)
     w        = w[:]
