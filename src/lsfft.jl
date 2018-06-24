@@ -13,7 +13,7 @@ function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
     Nf = length(f)
     A = [exp(2π*f[fn]*t[n]) for n = 1:N, fn = 1:Nf]
     x = real_complex_bs(A,b,λ)
-    info("Condition number: $(round(cond(A'A),2))\n")
+    info("Condition number: $(round(cond(A'A), digits=2))\n")
 end
 
 
@@ -32,7 +32,7 @@ function ls_spectral(y,t,f,W::AbstractVector)
 
     W = diagm(W)
     x = (A'W*A)\(A'W)*y
-    info("Condition number: $(round(cond(A'*W*A),2))\n")
+    info("Condition number: $(round(cond(A'*W*A), digits=2))\n")
     x = complex.(x[1:Nf], x[Nf+1:end])
 end
 
@@ -56,7 +56,7 @@ function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
     V22   = V[n+1:end,n+1:end]
     x     = -V21/V22
     # x = x[1:Nf] + 1im*x[Nf+1:end]
-    info("Condition number: $(round(cond(AA'AA),2))\n")
+    info("Condition number: $(round(cond(AA'AA), digits=2))\n")
     x = complex.(x[1:Nf], x[Nf+1:end])
 end
 
@@ -88,7 +88,7 @@ Perform windowed cross spectral density estimation using the least-squares metho
 See `ls_spectral` for additional help.
 """
 function ls_windowcsd(y,u,t,freqs, nw = 10, noverlap = -1, window_func=rect)
-    S       = zeros(Complex128,length(freqs))
+    S       = zeros(ComplexF64,length(freqs))
     windows = Windows2(y,t,nw,noverlap,window_func)
     for (y,t) in windows
         xy = ls_spectral(y,t,freqs,windows.W)
@@ -117,7 +117,7 @@ See also `ls_windowcsd` and `ls_spectral` for additional help.
 function ls_cohere(y,u,t,freqs, nw = 10, noverlap = -1)
     Syy     = zeros(length(freqs))
     Suu     = zeros(length(freqs))
-    Syu     = zeros(Complex128,length(freqs))
+    Syu     = zeros(ComplexF64,length(freqs))
     windows = Windows3(y,t,u,nw,noverlap,hanning)
     for (y,t,u) in windows
         xy      = ls_spectral(y,t,freqs,windows.W)
@@ -181,7 +181,7 @@ function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w
     Nf       = length(w)
     K        = basis_activation_func(V,Nv,normalize,coulomb)
     M(w,X,V) = vec(vec(exp.(im*w.*X))*K(V)')'
-    A        = zeros(Complex128,N,Nf*Nv)
+    A        = zeros(ComplexF64,N,Nf*Nv)
 
     for n = 1:N
         A[n,:] = M(w,X[n],V[n])
