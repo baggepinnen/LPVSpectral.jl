@@ -26,7 +26,8 @@ Nv     = 50   # Number of basis functions
 
 ses = ls_sparse_spectral_lpv(Y,X,V,w_test,Nv; λ = λs, normalize = normal, tol=1e-8, printerval=10, iters=6000) # Perform LPV spectral estimation
 se  = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = 0.02, normalize = normal)
-xs  = LPVSpectral.ls_sparse_spectral(Y,X,1:0.5:25; λ=0.5, tol=1e-10, printerval=100, iters=60000, μ=0.0001)
+xs  = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; λ=0.5, tol=1e-9, printerval=100, iters=60000, μ=0.0001)
+xsi = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; proxg=IndBallL0(3), λ=0.5, tol=1e-9, printerval=100, iters=30000, μ=0.000001)
 xsw = ls_windowpsd(Y,X,1:0.5:22; estimator=ls_sparse_spectral, λ=0.2, tol=1e-10, printerval=10000, iters=60000, μ=0.0001)
 
 # plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel=L"$x$ (sampling points)", title=L"Test signal $y_t$ and scheduling signal $v_t$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
@@ -44,5 +45,6 @@ plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:p
 plot!(2π*collect(spectrum_welch.freq), spectrum_welch.power, lab="Welch", l=:path, m=:none, yscale=:log10, linewidth=2, c=:blue)
 plot!(w_test,spectrum_lpv/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false, lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
 plot!(w_test,spectrum_lpvs/fs, lab="Sparse LPV", l=:scatter, m=:x, c=:green)
-plot!(2π*(1:0.5:25), abs2.(xs), lab="sparse", l=:path, m=:none, yscale=:log10, linewidth=2, c=:magenta)
+plot!(2π*(1:0.1:25), abs2.(xs), lab="sparse", l=:path, m=:none, yscale=:log10, linewidth=2, c=:magenta)
+plot!(2π*(1:0.1:25), abs2.(xsi), lab="sparse ind ball", l=:path, m=:none, yscale=:log10, linewidth=2, c=:yellow)
 plot!(2π*(1:0.5:22), abs2.(xsw), lab="sparse windowed", l=:path, m=:none, yscale=:log10, linewidth=2, c=:orange)

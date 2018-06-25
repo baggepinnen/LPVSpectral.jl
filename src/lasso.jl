@@ -69,7 +69,7 @@ proxg      = ProximalOperators.NormL0(λ),
 kwargs...)`
 
 perform spectral estimation using the least-squares method with (default) a L0 pseudo-norm penalty on the
-Fourier coefficients, change kwarg `proxg` to e.g. `NormL1(λ)` for a different behavior. Promotes a sparse spectrum. See `?ADMM` for keyword arguments to control the solver.
+Fourier coefficients, change kwarg `proxg` to e.g. `NormL1(λ)` for a different behavior or ` proxg = IndBallL0(4)` if the number of frequencies is known in advance. Promotes a sparse spectrum. See `?ADMM` for keyword arguments to control the solver.
 
 `y` is the signal to be analyzed
 `t` is the sampling points
@@ -91,7 +91,7 @@ function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
     proxf  = ProximalOperators.LeastSquares(Φ,y, iterative=true)
 
     x      = ADMM(x, proxf, proxg; kwargs...)
-    params = complex(x[1:end÷2], x[end÷2+1:end])
+    params = complex.(x[1:end÷2], x[end÷2+1:end])
 end
 
 
@@ -129,7 +129,7 @@ end
 """
 function ADMM(x,proxf,proxg;
     iters      = 10000,
-    tol        = 1e-5,
+    tol        = 1e-9,
     printerval = 100,
     cb         = nothing,
     μ          = 0.05)
