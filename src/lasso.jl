@@ -37,42 +37,39 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
     T        = length(y)
     Nf       = length(w)
     K        = basis_activation_func(V,Nv,normalize,coulomb)
-    M(w,X,V) = vec(vec(exp.(im*w.*X))*K(V)')'
+    M(w,X,V) = vec(vec(exp.(im.*w.*X))*K(V)')'
     As       = zeros(Complex128,T,Nf*Nv)
 
     for n = 1:T
         As[n,:] = M(w,X[n],V[n])
     end
 
-    params = real_complex_bs(As,y,λ) # Initialize with standard least squares
-    inds   = reshape(1:2Nf*Nv, Nf, :)'[:]        # Permute parameters so that groups are adjacent
+    x      = zeros(Nf*Nv)                 # Initialize with standard least squares
+    inds   = reshape(1:2Nf*Nv, Nf, :)'[:] # Permute parameters so that groups are adjacent
     inds   = vcat(inds...)
-    x      = [real.(params); imag.(params)][inds]
+    # x    = [real.(params); imag.(params)][inds]
     Φ      = [real.(As) imag.(As)][:,inds]
+    proxf  = ProximalOperators.LeastSquares(Φ,y,iterative=true)
 
-    nparams = size(Φ,2) # 2Nf*Nv
+    gs     = ntuple(f->NormL2(λ), Nf)
+    indsg  = ntuple(f->((f-1)*2Nv+1:f*2Nv, ) ,Nf)
+    proxg  = SlicedSeparableSum(gs, indsg)
 
-    Q     = Φ'Φ
-    q     = -Φ'y
-    proxf = ProximalOperators.QuadraticIterative(2Q,2q)
+    x      = ADMM(x, proxf, proxg; kwargs...)
 
-    gs    = ntuple(f->NormL2(λ), Nf)
-    indsg = ntuple(f->((f-1)*2Nv+1:f*2Nv, ) ,Nf)
-    proxg = SlicedSeparableSum(gs, indsg)
-
-    x = ADMM(x, proxf, proxg; kwargs...)
-
-    x = x[sortperm(inds)] # Sortperm is inverse of inds
+    x      = x[sortperm(inds)]            # Sortperm is inverse of inds
     params = complex.(x[1:end÷2], x[end÷2+1:end])
     SpectralExt(y, X, V, w, Nv, λ, coulomb, normalize, params, nothing)
 end
 
 
 
-"""`ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=1, kwargs...)`
+"""`ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y), [window]; λ=1,
+proxg      = ProximalOperators.NormL0(λ),
+kwargs...)`
 
-perform spectral estimation using the least-squares method with a L0 pseudo-norm penalty on the
-Fourier coefficients. Promotes a sparse spectrum. See `?ADMM` for keyword arguments to control the solver.
+perform spectral estimation using the least-squares method with (default) a L0 pseudo-norm penalty on the
+Fourier coefficients, change kwarg `proxg` to e.g. `NormL1(λ)` for a different behavior. Promotes a sparse spectrum. See `?ADMM` for keyword arguments to control the solver.
 
 `y` is the signal to be analyzed
 `t` is the sampling points
@@ -80,28 +77,30 @@ Fourier coefficients. Promotes a sparse spectrum. See `?ADMM` for keyword argume
 """
 function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
     λ          = 1,
+    proxg      = NormL0(λ),
     kwargs...)
 
-    N = length(y)
-    Nf = length(f)
-    A = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
+    N      = length(y)
+    Nf     = length(f)
+    A      = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
 
     params = real_complex_bs(A,y,λ) # Initialize with standard least squares
     x      = [real.(params); imag.(params)]
     Φ      = [real.(A) imag.(A)]
 
-    proxf = ProximalOperators.LeastSquares(Φ,y, iterative=true)
-    proxg = NormL0(λ)
+    proxf  = ProximalOperators.LeastSquares(Φ,y, iterative=true)
 
-    x = ADMM(x, proxf, proxg; kwargs...)
+    x      = ADMM(x, proxf, proxg; kwargs...)
     params = complex(x[1:end÷2], x[end÷2+1:end])
 end
 
+
 function ls_sparse_spectral(y,t,f, W;
     λ          = 1,
+    proxg      = NormL0(λ),
     kwargs...)
 
-    N = length(y)
+    N  = length(y)
     Nf = length(f)
     Φ  = zeros(N,2Nf)
     for fn=1:Nf, n = 1:N
@@ -116,7 +115,6 @@ function ls_sparse_spectral(y,t,f, W;
     q      = -Φ'Wd*y
     proxf  = ProximalOperators.QuadraticIterative(2Q,2q)
 
-    proxg = NormL0(λ)
     x = ADMM(x, proxf, proxg; kwargs...)
     params = complex.(x[1:end÷2], x[end÷2+1:end])
 end
