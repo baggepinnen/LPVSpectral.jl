@@ -76,6 +76,7 @@ Fourier coefficients, change kwarg `proxg` to e.g. `NormL1(λ)` for a different 
 `f` is a vector of frequencies
 """
 function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
+    init       = false,
     λ          = 1,
     proxg      = NormL0(λ),
     kwargs...)
@@ -84,7 +85,7 @@ function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
     Nf     = length(f)
     A      = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
 
-    params = real_complex_bs(A,y,λ) # Initialize with standard least squares
+    params = init ? real_complex_bs(A,y,λ) : fill(0., 2Nf) # Initialize with standard least squares
     x      = [real.(params); imag.(params)]
     Φ      = [real.(A) imag.(A)]
 
