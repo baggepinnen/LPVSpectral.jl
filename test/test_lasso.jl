@@ -12,7 +12,7 @@ function generate_signal(f,w,N, modphase=false)
     y,v,x,frequency_matrix, dependence_matrix
 end
 
-N      = 500 # Number of training data points
+N      = 50000 # Number of training data points
 f      = [v->2v^2, v->2/(5v+1), v->3exp(-10*(v-0.5)^2),] # Functional dependences on the scheduling variable
 w      = 2π*[2,10,20] # Frequency vector
 w_test = 2π*(2:2:25) # Test Frequency vector, set w_test = w for a nice Function visualization
@@ -24,11 +24,13 @@ Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N, true)
 normal = true # Use normalized basis functions
 Nv     = 50   # Number of basis functions
 
+callback(x,z) = plot(2π*(1:0.1:25), max.(abs2.([complex.(x[1:end÷2], x[end÷2+1:end]) complex.(z[1:end÷2], z[end÷2+1:end])]), 1e-20),  yscale=:log10)
+
 ses = ls_sparse_spectral_lpv(Y,X,V,w_test,Nv; λ = λs, normalize = normal, tol=1e-8, printerval=10, iters=6000) # Perform LPV spectral estimation
 se  = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = 0.02, normalize = normal)
-xs  = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; λ=0.5, tol=1e-9, printerval=100, iters=60000, μ=0.0001)
-xsi = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; proxg=IndBallL0(3), λ=0.5, tol=1e-9, printerval=100, iters=30000, μ=0.000001)
-xsw = ls_windowpsd(Y,X,1:0.5:22; estimator=ls_sparse_spectral, λ=0.2, tol=1e-10, printerval=10000, iters=60000, μ=0.0001)
+xs  = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; λ=500, tol=1e-9, printerval=2, iters=9000, μ=0.00001,cb=callback)
+xsi = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; proxg=IndBallL0(6), λ=0.5, tol=1e-9, printerval=100, iters=9000, μ=0.0001,cb=callback)
+xsw = ls_windowpsd(Y,X,1:0.5:22; nw=2, estimator=ls_sparse_spectral, λ=0.2, tol=1e-10, printerval=10000, iters=60000, μ=0.0001)
 
 # plot(X,[Y V], linewidth=[1 2], lab=["\$y_t\$" "\$v_t\$"], xlabel=L"$x$ (sampling points)", title=L"Test signal $y_t$ and scheduling signal $v_t$", legend=true, xlims=(0,10), grid=false, c=[:cyan :blue])
 plot(se; normalization=:none, dims=2, l=:solid, c = :orange, fillalpha=0.5, nMC = 5000, fillcolor=:orange, linewidth=2, bounds=true, lab=reshape(["Est. \$\\omega = $(round(w/π))\\pi \$" for w in w_test],1,:), phase = false)
@@ -43,8 +45,8 @@ spectrum_per   = DSP.periodogram(Y, fs=fs)
 spectrum_welch = DSP.welch_pgram(Y, fs=fs)
 plot(2π*collect(spectrum_per.freq), spectrum_per.power, lab="Periodogram", l=:path, m=:none, yscale=:log10, c=:cyan)
 plot!(2π*collect(spectrum_welch.freq), spectrum_welch.power, lab="Welch", l=:path, m=:none, yscale=:log10, linewidth=2, c=:blue)
+plot!(2π*(1:0.1:25), max.(abs2.(xs), 1e-15), lab="sparse", l=:path, m=:none, yscale=:log10, linewidth=2, c=:magenta)
 plot!(w_test,spectrum_lpv/fs, xlabel=L"$\omega$ [rad/s]", ylabel="Spectral density", ylims=(-Inf,Inf), grid=false, lab="LPV", l=:scatter, m=:o, yscale=:log10, c=:orange)
 plot!(w_test,spectrum_lpvs/fs, lab="Sparse LPV", l=:scatter, m=:x, c=:green)
-plot!(2π*(1:0.1:25), abs2.(xs), lab="sparse", l=:path, m=:none, yscale=:log10, linewidth=2, c=:magenta)
-plot!(2π*(1:0.1:25), abs2.(xsi), lab="sparse ind ball", l=:path, m=:none, yscale=:log10, linewidth=2, c=:yellow)
-plot!(2π*(1:0.5:22), abs2.(xsw), lab="sparse windowed", l=:path, m=:none, yscale=:log10, linewidth=2, c=:orange)
+plot!(2π*(1:0.1:25), max.(abs2.(xsi), 1e-15), lab="sparse ind ball", l=:path, m=:none, yscale=:log10, linewidth=2, c=:yellow)
+plot!(2π*(1:0.5:22), max.(abs2.(xsw), 1e-15), lab="sparse windowed", l=:path, m=:none, yscale=:log10, linewidth=2, c=:orange)

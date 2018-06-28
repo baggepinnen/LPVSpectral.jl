@@ -77,6 +77,7 @@ Fourier coefficients, change kwarg `proxg` to e.g. `NormL1(λ)` for a different 
 `f` is a vector of frequencies
 """
 function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
+    init       = false,
     λ          = 1,
     proxg      = NormL0(λ),
     kwargs...)
@@ -85,14 +86,14 @@ function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
     Nf     = length(f)
     A      = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
 
-    params = real_complex_bs(A,y,λ) # Initialize with standard least squares
+    params = init ? real_complex_bs(A,y,λ) : fill(0., Nf) # Initialize with standard least squares
     x      = [real.(params); imag.(params)]
     Φ      = [real.(A) imag.(A)]
 
     proxf  = ProximalOperators.LeastSquares(Φ,y, iterative=true)
 
-    x      = ADMM(x, proxf, proxg; kwargs...)
-    params = complex.(x[1:end÷2], x[end÷2+1:end])
+    x,z    = ADMM(x, proxf, proxg; kwargs...)
+    params = complex.(z[1:end÷2], z[end÷2+1:end])
 end
 
 
@@ -116,8 +117,8 @@ function ls_sparse_spectral(y,t,f, W;
     q      = -Φ'Wd*y
     proxf  = ProximalOperators.QuadraticIterative(2Q,2q)
 
-    x = ADMM(x, proxf, proxg; kwargs...)
-    params = complex.(x[1:end÷2], x[end÷2+1:end])
+    x,z = ADMM(x, proxf, proxg; kwargs...)
+    params = complex.(z[1:end÷2], z[end÷2+1:end])
 end
 
 """
@@ -125,7 +126,7 @@ end
     iters      = 10000,   # ADMM maximum number of iterations
     tol        = 1e-5,    # ADMM tolerance
     printerval = 100,     # Print this often
-    cb(x)      = nothing, # Callback function
+    cb(x,z)    = nothing, # Callback function
     μ          = 0.05`)   # ADMM tuning parameter. If results oscillate, lower this value.
 """
 function ADMM(x,proxf,proxg;
@@ -137,7 +138,7 @@ function ADMM(x,proxf,proxg;
 
     @assert 0 ≤ μ ≤ 1 "μ should be ≤ 1"
 
-    z     = zeros(size(x))
+    z     = copy(x)
     u     = zeros(size(x))
     zu    = similar(u)
     xu    = similar(u)
@@ -155,13 +156,14 @@ function ADMM(x,proxf,proxg;
         if i % printerval == 0
             @printf("%d ||x-z||₂ %.10f\n", i,  nxz)
             if cb != nothing
-                cb(x)
+                cb(x,z)
             end
         end
         if nxz < tol
+            @printf("%d ||x-z||₂ %.10f\n", i,  nxz)
             info("||x-z||₂ ≤ tol")
             break
         end
     end
-    x
+    x,z
 end
