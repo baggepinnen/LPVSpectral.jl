@@ -28,6 +28,7 @@ See also `psd`, `ls_spectral_lpv` and `ls_windowpsd_lpv`
 """
 function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::AbstractVector,
     w, Nv::Integer;
+    λ         = 1,
     coulomb   = false,
     normalize = true,
     kwargs...)
@@ -44,7 +45,7 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
         As[n,:] = M(w,X[n],V[n])
     end
 
-    x      = zeros(Nf*Nv)                 # Initialize with standard least squares
+    x      = zeros(2Nf*Nv)                 # Initialize with standard least squares
     inds   = reshape(1:2Nf*Nv, Nf, :)'[:] # Permute parameters so that groups are adjacent
     inds   = vcat(inds...)
     # x    = [real.(params); imag.(params)][inds]
