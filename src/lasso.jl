@@ -45,8 +45,8 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
         As[n,:] = M(w,X[n],V[n])
     end
 
-    x      = zeros(2Nf*Nv)                 # Initialize with standard least squares
-    inds   = reshape(1:2Nf*Nv, Nf, :)'[:] # Permute parameters so that groups are adjacent
+    x      = zeros(2size(As,2))                 # Initialize with standard least squares
+    inds   = reshape(1:length(x), Nf, :)'[:] # Permute parameters so that groups are adjacent
     inds   = vcat(inds...)
     # x    = [real.(params); imag.(params)][inds]
     Φ      = [real.(As) imag.(As)][:,inds]
