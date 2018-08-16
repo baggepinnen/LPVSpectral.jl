@@ -39,7 +39,7 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
     Nf       = length(w)
     K        = basis_activation_func(V,Nv,normalize,coulomb)
     M(w,X,V) = vec(vec(exp.(im.*w.*X))*K(V)')'
-    As       = zeros(Complex128,T,Nf*Nv)
+    As       = zeros(ComplexF64,T,ifelse(coulomb,2,1)*Nf*Nv)
 
     for n = 1:T
         As[n,:] = M(w,X[n],V[n])
@@ -56,21 +56,20 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
     indsg  = ntuple(f->((f-1)*2Nv+1:f*2Nv, ) ,Nf)
     proxg  = SlicedSeparableSum(gs, indsg)
 
-    x      = ADMM(x, proxf, proxg; kwargs...)
-
-    x      = x[sortperm(inds)]            # Sortperm is inverse of inds
-    params = complex.(x[1:end÷2], x[end÷2+1:end])
+    x,z      = ADMM(x, proxf, proxg; kwargs...)
+    z      = z[sortperm(inds)]            # Sortperm is inverse of inds
+    params = complex.(z[1:end÷2], z[end÷2+1:end])
     SpectralExt(y, X, V, w, Nv, λ, coulomb, normalize, params, nothing)
 end
 
 
 
 """`ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y), [window]; λ=1,
-proxg      = ProximalOperators.NormL0(λ),
+proxg      = ProximalOperators.NormL1(λ),
 kwargs...)`
 
-perform spectral estimation using the least-squares method with (default) a L0 pseudo-norm penalty on the
-Fourier coefficients, change kwarg `proxg` to e.g. `NormL1(λ)` for a different behavior or ` proxg = IndBallL0(4)` if the number of frequencies is known in advance. Promotes a sparse spectrum. See `?ADMM` for keyword arguments to control the solver.
+perform spectral estimation using the least-squares method with (default) a L1-norm penalty on the
+Fourier coefficients, change kwarg `proxg` to e.g. `NormL0(λ)` for a different behavior or ` proxg = IndBallL0(4)` if the number of frequencies is known in advance. Promotes a sparse spectrum. See `?ADMM` for keyword arguments to control the solver.
 
 `y` is the signal to be analyzed
 `t` is the sampling points
@@ -79,7 +78,7 @@ Fourier coefficients, change kwarg `proxg` to e.g. `NormL1(λ)` for a different 
 function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
     init       = false,
     λ          = 1,
-    proxg      = NormL0(λ),
+    proxg      = NormL1(λ),
     kwargs...)
 
     N      = length(y)
@@ -99,7 +98,7 @@ end
 
 function ls_sparse_spectral(y,t,f, W;
     λ          = 1,
-    proxg      = NormL0(λ),
+    proxg      = NormL1(λ),
     kwargs...)
 
     N  = length(y)

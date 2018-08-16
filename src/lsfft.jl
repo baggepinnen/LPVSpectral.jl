@@ -150,7 +150,7 @@ end
     r ./=sum(r)
 end
 
-@inline _Kcoulomb(V,vc,gamma) = _K(V,vc,gamma).*(sign(V) .== sign(vc))
+@inline _Kcoulomb(V,vc,gamma) = _K(V,vc,gamma).*(sign.(V) .== sign.(vc))
 
 @inline function _Kcoulomb_norm(V,vc,gamma)
     r = _Kcoulomb(V,vc,gamma)
@@ -193,8 +193,7 @@ function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w
     Nf       = length(w)
     K        = basis_activation_func(V,Nv,normalize,coulomb)
     M(w,X,V) = vec(vec(exp.(im*w.*X))*K(V)')'
-    A        = zeros(ComplexF64,N,Nf*Nv)
-
+    A        = zeros(ComplexF64,N, ifelse(coulomb,2,1)*Nf*Nv)
     for n = 1:N
         A[n,:] = M(w,X[n],V[n])
     end

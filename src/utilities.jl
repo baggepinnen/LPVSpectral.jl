@@ -24,7 +24,7 @@ Returns a func v->ϕ(v) ∈ ℜ(Nv) that calculates the activation of `Nv` basis
 """
 function basis_activation_func(V,Nv,normalize,coulomb)
     if coulomb # If Coulomb setting is activated, double the number of basis functions and clip the activation at zero velocity (useful for data that exhibits a discontinuity at v=0, like coulomb friction)
-        vc      = range(0, stop=maximum(abs(V)), length=Nv+2)
+        vc      = range(0, stop=maximum(abs.(V)), length=Nv+2)
         vc      = vc[2:end-1]
         vc      = [-vc[end:-1:1]; vc]
         Nv      = 2Nv
@@ -42,7 +42,7 @@ end
 Accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents an inverse standard deviation, then 1/λ = σ, not 1/λ = σ²`"""
 function ridgereg(A,b,λ)
     n = size(A,2)
-    [A; λ*eye(n)]\[b;zeros(n)]
+    [A; λ*I]\[b;zeros(n)]
 end
 
 """`real_complex_bs(A,b, λ=0)`
@@ -51,7 +51,7 @@ Replaces the backslash operator For complex arguments. Expands the A-matrix into
 function real_complex_bs(A,b, λ=0)
     n  = size(A,2)
     Ar = [real(A) imag(A)]
-    xr = λ > 0 ? [Ar; λ*eye(2n)]\[b;zeros(2n)] : Ar\b
+    xr = λ > 0 ? [Ar; λ*I]\[b;zeros(2n)] : Ar\b
     x  = complex.(xr[1:n], xr[n+1:end])
 end
 
@@ -65,7 +65,7 @@ import Base.rand
 
 mutable struct ComplexNormal{T<:Complex}
     m::AbstractVector{T}
-    Γ::Base.LinAlg.Cholesky
+    Γ::Cholesky
     C::Symmetric{T}
 end
 
@@ -148,7 +148,7 @@ end
 affine_transform(cn::ComplexNormal, A,b) = ComplexNormal(A*cn.m+b, cholfact(A*full(cn.Γ)*conj(A')), Symmetric(A*cn.C*A'))
 
 
-function rand(cn::ComplexNormal,s)
+function rand(cn::ComplexNormal,s::Integer)
     L = cn_V(cn)[:U]
     m = [real(cn.m); imag(cn.m)]
     n = length(cn.m)

@@ -50,7 +50,7 @@ end
     bounds = bounds && se.Σ != nothing
     if bounds
         cn = ComplexNormal(se.x,se.Σ)
-        zi = rand(cn,nMC) # Draw several random parameters from the posterior distribution
+        zi = LPVSpectral.rand(cn,nMC) # Draw several random parameters from the posterior distribution
     end
 
     for j = 1:size(fg,1)

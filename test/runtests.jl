@@ -65,7 +65,7 @@ cn = ComplexNormal(X,Y)
 pdf(cn,b)
 pdf(cn,im*b)
 
-@test isa(cn_Vxx(A,A), Base.LinAlg.Cholesky)
+@test isa(cn_Vxx(A,A), Cholesky)
 @test isa(cn_fVxx(A,A), Matrix)
 @test issymmetric(cn_fVxx(A,A))
 cn_V(A,0.1A)
