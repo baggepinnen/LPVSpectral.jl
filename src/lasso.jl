@@ -160,7 +160,7 @@ function ADMM(x,proxf,proxg;
         end
         if nxz < tol
             @printf("%d ||x-z||₂ %.10f\n", i,  nxz)
-            info("||x-z||₂ ≤ tol")
+            @info("||x-z||₂ ≤ tol")
             break
         end
     end
