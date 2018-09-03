@@ -1,6 +1,6 @@
 module TestLPV
 using LPVSpectral
-using Test
+using Test, LinearAlgebra, Statistics
 using Plots, DSP
 # write your own tests here
 
@@ -12,7 +12,7 @@ function generate_signal(f,w,N, modphase=false)
     # phase_matrix
     dependence_matrix = Float64[f[(i-1)%length(f)+1].(v) for v in v, i in eachindex(w)] # N x nw
     frequency_matrix = [cos(w*x -0.5modphase*(dependence_matrix[i,j])) for (i,x) in enumerate(x), (j,w) in enumerate(w)] # N x nw
-    y = sum(dependence_matrix.*frequency_matrix,2)[:] # Sum over all frequencies
+    y = sum(dependence_matrix.*frequency_matrix,dims=2)[:] # Sum over all frequencies
     y += 0.1randn(size(y))
     y,v,x,frequency_matrix, dependence_matrix
 end
@@ -51,10 +51,10 @@ n  = 10
 n2 = 5
 a  = randn(n)
 A  = randn(n,n)
-A  = A'A + eye(n)
+A  = A'A + I
 b  = randn(n2)
 B  = randn(n2,n2)
-B  = B'B + eye(n2)
+B  = B'B + I
 X  = randn(n,n2)
 Y  = randn(n,n2)
 cn = ComplexNormal(X,Y)
@@ -80,8 +80,8 @@ y   = randn(1000,3)
 cn  = ComplexNormal(x,y)
 z   = rand(cn,1000000);
 cn2 = ComplexNormal(z)
-@test vecnorm(full(cn.Γ)-full(cn2.Γ)) < 0.01
-@test vecnorm(full(cn.C)-full(cn2.C)) < 0.01
+@test norm(Matrix(cn.Γ)-Matrix(cn2.Γ)) < 0.01
+@test norm(Matrix(cn.C)-Matrix(cn2.C)) < 0.01
 
 println("Done")
 

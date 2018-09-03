@@ -26,7 +26,7 @@ export periodogram, welch_pgram, Windows
 Periodogram types and SpectralExt type can be plotted using `plot(x::SpectralExt)`
 """
 module LPVSpectral
-using LinearAlgebra, Statistics
+using LinearAlgebra, Statistics, Printf
 using DSP
 using Plots
 using ProximalOperators

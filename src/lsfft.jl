@@ -164,7 +164,7 @@ See also `ls_windowpsd_lpv`
 """
 function psd(se::SpectralExt)
     rp = LPVSpectral.reshape_params(copy(se.x),length(se.w))
-    return abs2.(sum(rp,2))
+    return abs2.(sum(rp,dims=2))
 end
 
 """
@@ -221,7 +221,7 @@ function ls_windowpsd_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,
     for (y,x,v) in windows
         x  = ls_spectral_lpv(y,x,v,w,Nv; kwargs...)
         rp = reshape_params(x.x,length(w))
-        S += abs2.(sum(rp,2))
+        S += abs2.(sum(rp,dims=2))
     end
     return S
 

@@ -24,16 +24,15 @@ end
 
 Base.start(::Windows2) = 0
 
-function Base.next(w::Windows2, state)
+function Base.iterate(w::Windows2, state=0)
+    state >= w.nw && return nothing
     if state < w.nw
-        inds =  (1:w.dpw)+state*(w.dpw-w.noverlap)
+        inds =  (1:w.dpw) .+ state*(w.dpw-w.noverlap)
     else
         inds =  state*(w.dpw-w.noverlap):length(w.y)
     end
     ((w.y[inds],w.t[inds]), state+1)
 end
-
-Base.done(w::Windows2, state) = state >= w.nw;
 
 Base.length(w::Windows2) = w.nw;
 
@@ -63,17 +62,14 @@ function Windows3(y,t,v,nw::Integer,noverlap::Integer,window_func::Function)
     Windows3(y,t,v,nw,dpw,noverlap,W)
 end
 
-Base.start(::Windows3) = 0
-
-function Base.next(w::Windows3, state)
+function Base.iterate(w::Windows3, state=0)
+    state >= w.nw && return nothing
     if state < w.nw
-        inds =  (1:w.dpw)+state*(w.dpw-w.noverlap)
+        inds =  (1:w.dpw) .+ state*(w.dpw-w.noverlap)
     else
         inds =  state*(w.dpw-w.noverlap):length(w.y)
     end
     ((w.y[inds],w.t[inds],w.v[inds]), state+1)
 end
-
-Base.done(w::Windows3, state) = state >= w.nw;
 
 Base.length(w::Windows3) = w.nw;

@@ -1,7 +1,7 @@
-
+cholesky
 
 function detrend!(x::Vector, order=0, t = 1:length(x))
-    x[:] -= mean(x)
+    x[:] .-= mean(x)
     if order == 1
         k = x\t
         x[:] -= k*t
@@ -71,7 +71,7 @@ end
 
 function ComplexNormal(X::AbstractVecOrMat,Y::AbstractVecOrMat)
     @assert size(X) == size(Y)
-    mc  = complex.(mean(X,1)[:], mean(Y,1)[:])
+    mc  = complex.(mean(X,dims=1)[:], mean(Y,dims=1)[:])
     V   = Symmetric(cov([X Y]))
     Γ,C = cn_V2ΓC(V)
     ComplexNormal(mc,Γ,C)
@@ -99,27 +99,27 @@ function cn_V2ΓC(V::Symmetric{T}) where T<:Real
     Vyy = V[n+1:end,n+1:end]
     Vxy = V[1:n,n+1:end]
     Vyx = V[n+1:end,1:n]
-    Γ   = cholfact(complex.(Vxx + Vyy, Vyx - Vxy))
+    Γ   = cholesky(complex.(Vxx + Vyy, Vyx - Vxy))
     C   = Symmetric(complex.(Vxx - Vyy, Vyx + Vxy))
     Γ,C
 end
 
 cn_V2ΓC(V::AbstractMatrix{T}) where {T<:Real} = cn_V2ΓC(Symmetric(V))
 
-@inline cn_Vxx(Γ,C) = cholfact(real.(full(Γ)+C)/2)
-@inline cn_Vyy(Γ,C) = cholfact(real.(full(Γ)-C)/2)
-@inline cn_Vxy(Γ,C) = cholfact(imag.(-full(Γ)+C)/2)
-@inline cn_Vyx(Γ,C) = cholfact(imag.(full(Γ)+C)/2)
+@inline cn_Vxx(Γ,C) = cholesky(real.(Matrix(Γ)+C)/2)
+@inline cn_Vyy(Γ,C) = cholesky(real.(Matrix(Γ)-C)/2)
+@inline cn_Vxy(Γ,C) = cholesky(imag.(-Matrix(Γ)+C)/2)
+@inline cn_Vyx(Γ,C) = cholesky(imag.(Matrix(Γ)+C)/2)
 
-@inline cn_fVxx(Γ,C) = real.(full(Γ)+C)/2
-@inline cn_fVyy(Γ,C) = real.(full(Γ)-C)/2
-@inline cn_fVxy(Γ,C) = imag.(-full(Γ)+C)/2
-@inline cn_fVyx(Γ,C) = imag.(full(Γ)+C)/2
+@inline cn_fVxx(Γ,C) = real.(Matrix(Γ)+C)/2
+@inline cn_fVyy(Γ,C) = real.(Matrix(Γ)-C)/2
+@inline cn_fVxy(Γ,C) = imag.(-Matrix(Γ)+C)/2
+@inline cn_fVyx(Γ,C) = imag.(Matrix(Γ)+C)/2
 
 @inline cn_Vs(Γ,C) = cn_Vxx(Γ,C),cn_Vyy(Γ,C),cn_Vxy(Γ,C),cn_Vyx(Γ,C)
 @inline cn_fV(Γ,C) = [cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)]
-@inline cn_V(Γ,C) = cholfact(cn_fV(Γ,C))
-@inline Σ(cn::ComplexNormal) = full(cn.Γ) # TODO: check this
+@inline cn_V(Γ,C) = cholesky(cn_fV(Γ,C))
+@inline Σ(cn::ComplexNormal) = Matrix(cn.Γ) # TODO: check this
 
 for f in [:cn_Vxx,:cn_Vyy,:cn_Vxy,:cn_Vyx,:cn_fVxx,:cn_fVyy,:cn_fVxy,:cn_fVyx,:cn_Vs,:cn_V,:cn_fV]
     @eval ($f)(cn::ComplexNormal) = ($f)(cn.Γ,cn.C)
@@ -134,22 +134,22 @@ This can probably be more efficiently implemented
 function pdf(cn::ComplexNormal, z)
     k = length(cn.m)
     R = conj(cn.C)'*inv(cn.Γ)
-    P = full(conj(cn.Γ))-R*cn.C
+    P = Matrix(cn.Γ)-R*cn.C # conj(Γ) = Γ for Γ::Cholesky
     cm = conj(cn.m)
     cz = conj(z)
     zmm = z-cn.m
     czmm = cz-cm
     ld = [czmm' zmm']
     rd = [zmm; czmm]
-    S = [full(cn.Γ) cn.C;conj(cn.C) full(conj(cn.Γ))]
+    S = [Matrix(cn.Γ) cn.C;conj(cn.C) Matrix(cn.Γ)] # conj(Γ) = Γ for Γ::Cholesky
     1/(π^k*sqrt(det(cn.Γ)*det(P))) * exp(-0.5* ld*(S\rd))
 end
 
-affine_transform(cn::ComplexNormal, A,b) = ComplexNormal(A*cn.m+b, cholfact(A*full(cn.Γ)*conj(A')), Symmetric(A*cn.C*A'))
+affine_transform(cn::ComplexNormal, A,b) = ComplexNormal(A*cn.m+b, cholesky(A*Matrix(cn.Γ)*conj(A')), Symmetric(A*cn.C*A'))
 
 
 function rand(cn::ComplexNormal,s::Integer)
-    L = cn_V(cn)[:U]
+    L = cn_V(cn).U
     m = [real(cn.m); imag(cn.m)]
     n = length(cn.m)
     z = (m' .+ randn(s,2n)*L)
