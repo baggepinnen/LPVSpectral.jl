@@ -4,7 +4,7 @@
 [![LPVSpectral](http://pkg.julialang.org/badges/LPVSpectral_0.6.svg)](http://pkg.julialang.org/?pkg=LPVSpectral)
 [![Build Status](https://travis-ci.org/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.org/baggepinnen/LPVSpectral.jl)
 
-A toolbox for least-squares spectral estimation, sparse spectral estimation and LPV spectral estimation. Contains an implementation of the spectral estimation method presented in
+A toolbox for least-squares spectral estimation, sparse spectral estimation and Linear Parameter-Varying (LPV) spectral estimation. Contains an implementation of the spectral estimation method presented in
 [Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition." 2017 American Control Conference.](http://lup.lub.lu.se/record/ac32368e-e199-44ff-b76a-36668ac7d595)
 ```bibtex
 @inproceedings{bagge2017spectral,
@@ -43,15 +43,15 @@ function generate_signal(f,w,N, modphase=false)
     # generate output signal
     dependence_matrix = Float64[f[(i-1)%length(f)+1](v) for v in v, i in eachindex(w)] # N x nw
     frequency_matrix  = [cos(w*x -0.5modphase*(dependence_matrix[i,j])) for (i,x) in enumerate(x), (j,w) in enumerate(w)] # N x nw
-    y = sum(dependence_matrix.*frequency_matrix,2)[:] # Sum over all frequencies
+    y = sum(dependence_matrix.*frequency_matrix,dims=2)[:] # Sum over all frequencies
     y += 0.1randn(size(y))
     y,v,x,frequency_matrix, dependence_matrix
 end
 
 N      = 500 # Number of training data points
 f      = [v->2v^2, v->2/(5v+1), v->3exp(-10*(v-0.5)^2),] # Functional dependences on the scheduling variable
-w      = 2π*[2,10,20] # Frequency vector
-w_test = 2π*(2:2:25) # Test Frequency vector, set w_test = w for a nice function visualization
+w      = 2π.*[2,10,20] # Frequency vector
+w_test = 2π.*(2:2:25) # Test Frequency vector, set w_test = w for a nice function visualization
 
 Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N, true)
 ```
@@ -66,7 +66,7 @@ normal = true # Use normalized basis functions
 Nv     = 50   # Number of basis functions
 
 se  = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
-ses = ls_sparse_spectral_lpv(Y,X,V,w_test,Nv; λ = λs, normalize = normal, tol=1e-8, printerval=10, iters=6000) # Same as above but with a group-lasso penalty on frequencies, promoting a solution with a sparse set of frequencies. Can be used to identify a sparse spectrum, i.e. to find w among w_test.
+ses = ls_sparse_spectral_lpv(Y,X,V,w_test,Nv; λ = λs, normalize = normal, tol=1e-8, printerval=100, iters=6000) # Same as above but with a group-lasso penalty on frequencies, promoting a solution with a sparse set of frequencies. Can be used to identify a sparse spectrum, i.e. to find w among w_test.
 ```
 
 All that remains now is to visualize the result, along with the result of standard spectral estimation methods.

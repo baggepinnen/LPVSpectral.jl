@@ -1,10 +1,10 @@
-cholesky
+
 
 function detrend!(x::Vector, order=0, t = 1:length(x))
     x[:] .-= mean(x)
     if order == 1
         k = x\t
-        x[:] -= k*t
+        x[:] .-= k*t
     end
     x
 end

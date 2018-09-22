@@ -21,9 +21,6 @@ struct Windows2
     end
 end
 
-
-Base.start(::Windows2) = 0
-
 function Base.iterate(w::Windows2, state=0)
     state >= w.nw && return nothing
     if state < w.nw
