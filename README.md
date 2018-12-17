@@ -11,6 +11,21 @@ A toolbox for least-squares spectral estimation, sparse spectral estimation and 
   year         = {2017},
 }
 ```
+Extensions (sparse estimation methods) to the above article were developed in
+[Bagge Carlson, F.](https://www.control.lth.se/staff/fredrik-bagge-carlson/), ["Machine Learning and System Identification for Estimation in Physical Systems"](https://lup.lub.lu.se/search/publication/ffb8dc85-ce12-4f75-8f2b-0881e492f6c0) (PhD Thesis 2018).
+```bibtex
+@thesis{bagge2018,
+  title        = {Machine Learning and System Identification for Estimation in Physical Systems},
+  author       = {Bagge Carlson, Fredrik},
+  keyword      = {Machine Learning,System Identification,Robotics,Spectral estimation,Calibration,State estimation},
+  month        = {12},
+  type         = {PhD Thesis},
+  number       = {TFRT-1122},
+  institution  = {Dept. Automatic Control, Lund University, Sweden},
+  year         = {2018},
+  url          = {https://lup.lub.lu.se/search/publication/ffb8dc85-ce12-4f75-8f2b-0881e492f6c0},
+}
+```
 
 # Installation
 `Pkg.add("LPVSpectral")`
