@@ -100,3 +100,5 @@ end
 
 
 end
+
+include("test_lasso.jl")

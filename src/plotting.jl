@@ -44,35 +44,35 @@ end
     for j = 1:size(fg,1)
         for i = 1:size(vg,2)
             ϕ = K(vg[j,i]) # Kernel activation vector
-            F[j,i] = abs(vecdot(x[j,:],ϕ))
-            P[j,i] = angle(vecdot(x[j,:],ϕ))
+            F[j,i] = abs(dot(x[j,:],ϕ))
+            P[j,i] = angle(dot(x[j,:],ϕ))
             if bounds
                 for iMC = 1:nMC
                     zii = zi[iMC,j:Nf:end][:]
-                    FB[j,i,iMC] = abs(vecdot(zii,ϕ))
+                    FB[j,i,iMC] = abs(dot(zii,ϕ))
                     if phase
-                        PB[j,i,iMC] = angle(vecdot(zii,ϕ))
+                        PB[j,i,iMC] = angle(dot(zii,ϕ))
                     end
                 end
             end
         end
     end
-    FB = sort(FB,3)
+    FB = sort(FB,dims=3)
     lim = 10
     FBl = FB[:,:,nMC ÷ lim]
     FBu = FB[:,:,nMC - (nMC ÷ lim)]
-    FBm = squeeze(mean(FB,3),3)
-    PB = sort(PB,3)
+    FBm = dropdims(mean(FB,dims=3),dims=3)
+    PB = sort(PB,dims=3)
     PBl = PB[:,:,nMC ÷ lim]
     PBu = PB[:,:,nMC - (nMC ÷ lim)]
-    PBm = squeeze(mean(PB,3),3)
+    PBm = dropdims(mean(PB,dims=3),dims=3)
 
     nd = normdim == :freq ? 1 : 2
     normalizer = 1.
     if normalization == :sum
-        normalizer =   sum(F, nd)/size(F,nd)
+        normalizer =   sum(F, dims=nd)/size(F,nd)
     elseif normalization == :max
-        normalizer =   maximum(F, nd)
+        normalizer =   maximum(F, dims=nd)
     end
     F = F./normalizer
     delete!(plotattributes, :normalization)
@@ -96,7 +96,7 @@ end
             yguide --> "\$A(v)\$"
             title --> "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
             @series begin
-                label --> "\$\\omega = $(round(fg[i,1]/pi,1))\\pi\$"
+                label --> "\$\\omega = $(round(fg[i,1]/pi,sigdigits=1))\\pi\$"
                 m = mcmean && bounds ? FBm[i,:] : F[i,:]
                 if bounds
                     # fillrange := FBu[i,:]
