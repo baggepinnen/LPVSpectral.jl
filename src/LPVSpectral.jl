@@ -94,9 +94,7 @@ detrend,
 detrend!
 
 # Re-export
-export periodogram,
-welch_pgram,
-Windows
+export Windows
 
 
 # ComplexNormal
