@@ -1,5 +1,6 @@
 # LPVSpectral
 [![Build Status](https://travis-ci.org/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.org/baggepinnen/LPVSpectral.jl)
+[![codecov](https://codecov.io/gh/baggepinnen/LPVSpectral.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/baggepinnen/LPVSpectral.jl)
 
 A toolbox for least-squares spectral estimation, sparse spectral estimation and Linear Parameter-Varying (LPV) spectral estimation. Contains an implementation of the spectral estimation method presented in
 [Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition." 2017 American Control Conference.](http://lup.lub.lu.se/record/ac32368e-e199-44ff-b76a-36668ac7d595)
@@ -27,12 +28,44 @@ Extensions (sparse estimation methods) to the above article were developed in
 }
 ```
 
-# Installation
-`Pkg.add("LPVSpectral")`
+## Installation
+`import Pkg; Pkg.add("LPVSpectral")`
 
-For the latest changes, `Pkg.checkout("LPVSpectral")`
 
-# Usage
+# List of functions
+
+This package provides tools for general least-squares spectral analysis, check out the functions
+```
+ls_spectral             # Least-squares spectral analysis
+ls_sparse_spectral      # Least-squares sparse (L0) spectral analysis (uses ADMM)
+tls_spectral            # Total Least-squares spectral analysis
+ls_windowpsd            # Windowed Least-squares spectral analysis (sparse estimates available, see kwarg `estimator`)
+ls_windowcsd            # Windowed Least-squares cross-spectral density estimation (sparse estimates available, see kwarg `estimator`)
+ls_cohere               # Least-squares cross coherence estimation (sparse estimates available, see kwarg `estimator`)
+ls_spectral_lpv         # LPV spectral decomposition
+ls_sparse_spectral_lpv  # LPV spectral decomposition with group-lasso penalty on frequencies (uses ADMM)
+ls_windowpsd_lpv        # Windowed power spectral density estimation with LPV method
+```
+
+# Sparse spectral estimation
+## L₁ regularized spectral estimation
+Minimize ||y-Ax||₂² + λ||x||₁ where x are the Fourier coefficients. Promotes a sparse spectrum
+`x = ls_sparse_spectral(y,t,ω; proxg=NormL1(λ), tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
+
+## L₀ regularized spectral estimation
+Minimize ||y-Ax||₂² + λ||x||₀ where x are the Fourier coefficients. Promotes a sparse spectrum
+`x = ls_sparse_spectral(y,t,ω; tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
+
+## L₀ constrained spectral estimation
+Minimize ||y-Ax||₂² s.t. ||x||₀ ≦ r where x are the Fourier coefficients. Promotes a sparse spectrum
+`x = ls_sparse_spectral(y,t,ω; proxg=IndBallL0(r), tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
+
+## Sparse LPV spectral estimation
+See example above
+`se = ls_sparse_spectral_lpv(Y,X,V,ω_test,Nv; λ = 0.1, normalize = normal, tol=1e-8, printerval=10, iters=6000)`
+
+
+# LPV spectral estimation
 We demonstrate the usage of the package with a simple example using simulated data, details can be found in the paper.
 
 ## Signal generation
@@ -105,35 +138,3 @@ plot!(w_test,spectrum_lpvs/fs, lab="Sparse LPV", l=:scatter, m=:o, c=:green)
 ![window](figs/spectrum.png)
 
 When the three frequencies in w have been identified, `w_test` can be replaced by `w` for a nicer plot. As indicated by the last figure, the sparse estimate using group-lasso is better at identifying the three frequency components present (with a small bias in the estimation of the true frequencies).
-
-# Sparse spectral estimation
-## L₁ regularized spectral estimation
-Minimize ||y-Ax||₂² + λ||x||₁ where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; proxg=NormL1(λ), tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
-
-## L₀ regularized spectral estimation
-Minimize ||y-Ax||₂² + λ||x||₀ where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
-
-## L₀ constrained spectral estimation
-Minimize ||y-Ax||₂² s.t. ||x||₀ ≦ r where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; proxg=IndBallL0(r), tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
-
-## Sparse LPV spectral estimation
-See example above
-`se = ls_sparse_spectral_lpv(Y,X,V,ω_test,Nv; λ = 0.1, normalize = normal, tol=1e-8, printerval=10, iters=6000)`
-
-# List of functions
-
-This package also provides tools for general least-squares spectral analysis, check out the functions
-```
-ls_spectral             # Least-squares spectral analysis
-ls_sparse_spectral      # Least-squares sparse (L0) spectral analysis (uses ADMM)
-tls_spectral            # Total Least-squares spectral analysis
-ls_windowpsd            # Windowed Least-squares spectral analysis (sparse estimates available, see kwarg `estimator`)
-ls_windowcsd            # Windowed Least-squares cross-spectral density estimation (sparse estimates available, see kwarg `estimator`)
-ls_cohere               # Least-squares cross coherence estimation (sparse estimates available, see kwarg `estimator`)
-ls_spectral_lpv         # LPV spectral decomposition
-ls_sparse_spectral_lpv  # LPV spectral decomposition with group-lasso penalty on frequencies (uses ADMM)
-ls_windowpsd_lpv        # Windowed power spectral density estimation with LPV method
-```
