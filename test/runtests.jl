@@ -85,5 +85,16 @@ cn2 = ComplexNormal(z)
 
 println("Done")
 
+@testset "plots" begin
+
+    y = randn(1000)
+    x = Linrange(0,1,1000)
+    periodogram(y)
+    periodogram(x,y)
+
+
+
+end
+
 
 end

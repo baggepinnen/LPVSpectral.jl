@@ -16,7 +16,7 @@ end
         y = p.args[2]
     else
         y = p.args[1]
-        x = linspace(-Fs/2,Fs/2,length(y))
+        x = LinRange(-Fs/2,Fs/2,length(y))
     end
     delete!(plotattributes,:Fs)
     y = abs.(fft(y))
@@ -42,7 +42,7 @@ end
     px = angle.(x)
     K  = basis_activation_func(V,Nv,normalize,coulomb)
 
-    fg,vg = meshgrid(w,linspace(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
+    fg,vg = meshgrid(w,LinRange(minimum(V),maximum(V),Nf == 100 ? 101 : 100)) # to guarantee that the broadcast below always works
     F  = zeros(size(fg))
     FB = zeros(size(fg)...,nMC)
     P  = zeros(size(fg))
