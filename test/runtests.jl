@@ -4,20 +4,20 @@ using Test, LinearAlgebra, Statistics, Random
 using Plots, DSP
 Random.seed!(0)
 # write your own tests here
+function generate_signal(f,w,N, modphase=false)
+    x = sort(10rand(N)) # Sample points
+    v = range(0, stop=1, length=N) # Scheduling variable
 
-@testset "LPVSpectral" begin
-    function generate_signal(f,w,N, modphase=false)
-        x = sort(10rand(N)) # Sample points
-        v = range(0, stop=1, length=N) # Scheduling variable
+    # generate output signal
+    # phase_matrix
+    dependence_matrix = Float64[f[(i-1)%length(f)+1].(v) for v in v, i in eachindex(w)] # N x nw
+    frequency_matrix = [cos(w*x -0.5modphase*(dependence_matrix[i,j])) for (i,x) in enumerate(x), (j,w) in enumerate(w)] # N x nw
+    y = sum(dependence_matrix.*frequency_matrix,dims=2)[:] # Sum over all frequencies
+    y += 0.1randn(size(y))
+    y,v,x,frequency_matrix, dependence_matrix
+end
 
-        # generate output signal
-        # phase_matrix
-        dependence_matrix = Float64[f[(i-1)%length(f)+1].(v) for v in v, i in eachindex(w)] # N x nw
-        frequency_matrix = [cos(w*x -0.5modphase*(dependence_matrix[i,j])) for (i,x) in enumerate(x), (j,w) in enumerate(w)] # N x nw
-        y = sum(dependence_matrix.*frequency_matrix,dims=2)[:] # Sum over all frequencies
-        y += 0.1randn(size(y))
-        y,v,x,frequency_matrix, dependence_matrix
-    end
+@testset "LPV methods" begin
 
 
     N      = 500 # Number of training data points
@@ -90,6 +90,23 @@ end
     @test norm(Matrix(cn.C)-Matrix(cn2.C)) < 0.01
 
 end
+
+# @testset "ls methods" begin
+T = 1000
+t = 0:T-1
+y = sin.(t)
+x = ls_spectral(y,t)
+@test findmax(abs.(x)) ≈ (0.960418853827, 160)
+
+f = LinRange(0,0.5,length(y)÷2)
+W = ones(length(y))
+x = ls_spectral(y,t,f,W)
+@test findmax(abs.(x)) ≈ (0.95642926188, 160)
+
+x = tls_spectral(y,t)
+@test findmax(abs.(x)) ≈ (0.960418853827, 160)
+
+# end
 
 @testset "plots" begin
 

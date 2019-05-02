@@ -1,3 +1,30 @@
+default_freqs(t) = LinRange(0,0.5-length(t)/2,length(t))
+
+function check_freq(f)
+    zerofreq = findfirst(iszero, f)
+    zerofreq == nothing || zerofreq == 1 || throw(ArgumentError("If zero frequency is included it must be the first frequency"))
+    zerofreq
+end
+
+function get_fourier_regressor(t,f)
+    zerofreq = check_freq(f)
+    N  = length(t)
+    Nf = length(f)
+    Nreg = zerofreq === nothing ? 2Nf : 2Nf-1
+    A  = zeros(N,Nreg)
+    sinoffset = Nf
+    for fn=1:Nf, n = 1:N
+        phi        = 2π*f[fn]*t[n]
+        A[n,fn]    = cos(phi)
+        if fn == zerofreq
+            sinoffset = Nf-1
+        else
+            A[n,fn+sinoffset] = -sin(phi)
+        end
+    end
+    A, zerofreq
+end
+
 """`ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)`
 
 perform spectral estimation using the least-squares method
@@ -7,57 +34,43 @@ perform spectral estimation using the least-squares method
 
 See also `ls_sparse_spectral` `tls_spectral`
 """
-function ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)
-    N = length(y)
-    Nf = length(f)
-    A = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
-    x = real_complex_bs(A,b,λ)
-    info("Condition number: $(round(cond(A'A), digits=2))\n")
+function ls_spectral(y,t,f=default_freqs(t); λ=1e-10)
+    zerofreq = check_freq(f)
+    A, zerofreq = get_fourier_regressor(t,f)
+    x = fourier_solve(A,y,zerofreq,λ)
+    @info("Condition number: $(round(cond(A'A), digits=2))\n")
     x
 end
 
 
+
 """`ls_spectral(y,t,f,W::AbstractVector)`
-`W` is a vector of weights, for weighted least-squares
+`W` is a vector of weights, same length as `y`, for weighted least-squares
 """
 function ls_spectral(y,t,f,W::AbstractVector)
-    N  = length(y)
-    Nf = length(f)
-    A  = zeros(N,2Nf)
-    for fn=1:Nf, n = 1:N
-        phi        = 2π*f[fn]*t[n]
-        A[n,fn]    = cos(phi)
-        A[n,fn+Nf] = -sin(phi)
-    end
-
+    A, zerofreq = get_fourier_regressor(t,f)
     Wd = Diagonal(W)
-    x = (A'Wd*A)\(A'Wd)*y
-    info("Condition number: $(round(cond(A'*W*A), digits=2))\n")
-    x = complex.(x[1:Nf], x[Nf+1:end])
+    x = (A'Wd*A + 1e-10I)\(A'Wd)*y
+    # @info("Condition number: $(round(cond(A'*Wd*A), digits=2))\n")
+    fourier2complex(x,zerofreq)
 end
 
 
-"""`tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))`
+
+"""`tls_spectral(y,t,f=(0:((length(y)-1)))/length(y))`
 Perform total least-squares spectral estimation using the SVD-method. See `ls_spectral` for additional help
 """
-function tls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y))
-    N  = length(y)
-    Nf = length(f)
-    A  = zeros(N,2Nf)
-    for n = 1:N, fn=1:Nf
-        phi        = 2π*f[fn]*t[n]
-        A[n,fn]    = cos(phi)
-        A[n,fn+Nf] = -sin(phi)
-    end
+function tls_spectral(y,t,f=default_freqs(t))
+    zerofreq = check_freq(f)
+    A, zerofreq = get_fourier_regressor(t,f)
     AA    = [A y]
-    U,S,V = svd(AA)
-    m,n,p = N,2Nf,1
-    V21   = V[1:n,n+1:end]
-    V22   = V[n+1:end,n+1:end]
+    s     = svd(AA, full=true)
+    n     = 2Nf
+    V21   = s.V[1:n,n+1:end]
+    V22   = s.V[n+1:end,n+1:end]
     x     = -V21/V22
-    # x = x[1:Nf] + 1im*x[Nf+1:end]
-    info("Condition number: $(round(cond(AA'AA), digits=2))\n")
-    x = complex.(x[1:Nf], x[Nf+1:end])
+
+    fourier2complex(x,zerofreq)
 end
 
 
