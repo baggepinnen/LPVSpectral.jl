@@ -1,7 +1,8 @@
 module TestLPV
 using LPVSpectral
-using Test, LinearAlgebra, Statistics
+using Test, LinearAlgebra, Statistics, Random
 using Plots, DSP
+Random.seed!(0)
 # write your own tests here
 
 function generate_signal(f,w,N, modphase=false)

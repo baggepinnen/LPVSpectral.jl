@@ -139,19 +139,17 @@ function ADMM(x,proxf,proxg;
 
     z     = copy(x)
     u     = zeros(size(x))
-    zu    = similar(u)
-    xu    = similar(u)
-    xz    = similar(u)
+    tmp   = similar(u)
     for i = 1:iters
 
-        zu .= z.-u
-        prox!(x, proxf, zu, μ)
-        xu .= x .+ u
-        prox!(z, proxg, xu, μ)
-        xz .= x .- z
-        u  .+= xz
+        tmp .= z.-u
+        prox!(x, proxf, tmp, μ)
+        tmp .= x .+ u
+        prox!(z, proxg, tmp, μ)
+        tmp .= x .- z
+        u  .+= tmp
 
-        nxz = norm(xz)
+        nxz = norm(tmp)
         if i % printerval == 0
             @printf("%d ||x-z||₂ %.10f\n", i,  nxz)
             if cb != nothing

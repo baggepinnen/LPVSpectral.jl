@@ -1,6 +1,5 @@
 julia 0.7
-LinearAlgebra
-Plots
 DSP
-RecipesBase 0.2.3
+Plots
 ProximalOperators
+RecipesBase

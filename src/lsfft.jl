@@ -1,6 +1,3 @@
-import Base: start, done, next
-
-
 """`ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)`
 
 perform spectral estimation using the least-squares method
