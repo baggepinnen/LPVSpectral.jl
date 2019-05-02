@@ -4,27 +4,15 @@ function meshgrid(a,b)
     grid_a, grid_b
 end
 
-@userplot Periodogram
 
-@recipe function plot_periodogram(p::Periodogram; Fs=1)
+@recipe function plot_periodogram(p::DSP.Periodograms.TFR)
     seriestype := :spectrum
     title --> "Periodogram"
-    # yscale --> :log10
-    # xguide --> "Frequency / [\$F_s\$]"
-    if length(p.args) > 1
-        x = p.args[1]
-        y = p.args[2]
-    else
-        y = p.args[1]
-        x = LinRange(-Fs/2,Fs/2,length(y))
-    end
-    delete!(plotattributes,:Fs)
-    y = abs.(fft(y))
-    (x,y)
+    p.freq, p.power
 end
 
 
-@recipe function plot_spectrum(::Type{Val{:spectrum}}, plt::Plots.Plot)
+@recipe function plot_spectrum(::Type{Val{:spectrum}}, plt::AbstractPlot)
     title --> "Spectrum"
     yscale --> :log10
     xguide --> "Frequency / [\$F_s\$]"
@@ -146,7 +134,7 @@ end
 
 
 @recipe function plot_spectralext(::Type{Val{:spectralext}}, x, y, z)
-    xi,w = y.x,y.w
+    xi,w = y.x, y.w
     title --> "Spectrum"
     Nf = length(w)
     x = reshape_params(xi,Nf)
