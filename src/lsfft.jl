@@ -1,8 +1,8 @@
-default_freqs(t) = LinRange(0,0.5-length(t)/2,length(t))
+default_freqs(t, nw=1) = LinRange(0,0.5-1/length(t)/2,length(t)÷2)
 
 function check_freq(f)
     zerofreq = findfirst(iszero, f)
-    zerofreq == nothing || zerofreq == 1 || throw(ArgumentError("If zero frequency is included it must be the first frequency"))
+    zerofreq !== nothing && zerofreq != 1 && throw(ArgumentError("If zero frequency is included it must be the first frequency"))
     zerofreq
 end
 
@@ -11,21 +11,25 @@ function get_fourier_regressor(t,f)
     N  = length(t)
     Nf = length(f)
     Nreg = zerofreq === nothing ? 2Nf : 2Nf-1
+    # N >= Nreg || throw(ArgumentError("Too many frequency components $Nreg > $N"))
     A  = zeros(N,Nreg)
     sinoffset = Nf
-    for fn=1:Nf, n = 1:N
-        phi        = 2π*f[fn]*t[n]
-        A[n,fn]    = cos(phi)
+    for fn=1:Nf
         if fn == zerofreq
             sinoffset = Nf-1
-        else
-            A[n,fn+sinoffset] = -sin(phi)
+        end
+        for n = 1:N
+            phi        = 2π*f[fn]*t[n]
+            A[n,fn]    = cos(phi)
+            if fn != zerofreq
+                A[n,fn+sinoffset] = -sin(phi)
+            end
         end
     end
     A, zerofreq
 end
 
-"""`ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)`
+"""`x,f = ls_spectral(y,t,f=(0:((length(y)-1)/2))/length(y); λ=0)`
 
 perform spectral estimation using the least-squares method
 `y` is the signal to be analyzed
@@ -35,16 +39,15 @@ perform spectral estimation using the least-squares method
 See also `ls_sparse_spectral` `tls_spectral`
 """
 function ls_spectral(y,t,f=default_freqs(t); λ=1e-10)
-    zerofreq = check_freq(f)
     A, zerofreq = get_fourier_regressor(t,f)
     x = fourier_solve(A,y,zerofreq,λ)
-    @info("Condition number: $(round(cond(A'A), digits=2))\n")
-    x
+    # @info("Condition number: $(round(cond(A'A), digits=2))\n")
+    x, f
 end
 
 
 
-"""`ls_spectral(y,t,f,W::AbstractVector)`
+"""`x,f = ls_spectral(y,t,f,W::AbstractVector)`
 `W` is a vector of weights, same length as `y`, for weighted least-squares
 """
 function ls_spectral(y,t,f,W::AbstractVector)
@@ -52,29 +55,30 @@ function ls_spectral(y,t,f,W::AbstractVector)
     Wd = Diagonal(W)
     x = (A'Wd*A + 1e-10I)\(A'Wd)*y
     # @info("Condition number: $(round(cond(A'*Wd*A), digits=2))\n")
-    fourier2complex(x,zerofreq)
+    fourier2complex(x,zerofreq), f
 end
 
 
 
-"""`tls_spectral(y,t,f=(0:((length(y)-1)))/length(y))`
+"""`x,f = tls_spectral(y,t,f=(0:((length(y)-1)))/length(y))`
 Perform total least-squares spectral estimation using the SVD-method. See `ls_spectral` for additional help
 """
 function tls_spectral(y,t,f=default_freqs(t))
     zerofreq = check_freq(f)
     A, zerofreq = get_fourier_regressor(t,f)
     AA    = [A y]
-    s     = svd(AA, full=true)
-    n     = 2Nf
-    V21   = s.V[1:n,n+1:end]
-    V22   = s.V[n+1:end,n+1:end]
+    # s     = svd(AA, full=true)
+    _,_,Vt = LAPACK.gesvd!('S','S',AA)
+    n     = size(A,2)
+    V21   = Vt[n+1,1:n]
+    V22   = Vt[n+1,n+1]
     x     = -V21/V22
 
-    fourier2complex(x,zerofreq)
+    fourier2complex(x,zerofreq), f
 end
 
 
-"""`ls_windowpsd(y,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)`
+"""`S,f = ls_windowpsd(y,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)`
 
 perform widowed spectral estimation using the least-squares method.
 `window_func` defaults to `Windows.rect`
@@ -84,14 +88,15 @@ perform widowed spectral estimation using the least-squares method.
 
 See `ls_spectral` for additional help.
 """
-function ls_windowpsd(y,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
+function ls_windowpsd(y,t,freqs=nothing; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
+    freqs === nothing && (freqs = default_freqs(t,nw))
     windows = Windows2(y,t,nw,noverlap,window_func)
     S       = zeros(length(freqs))
     for (yi,ti) in windows
-        x  = estimator(yi,ti,freqs,windows.W; kwargs...)
-        S += abs2.(x)
+        x  = estimator(yi,ti,freqs,windows.W; kwargs...)[1]
+        S += nw .* abs2.(x)
     end
-    return S
+    return S, freqs
 end
 
 """`ls_windowcsd(y,u,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)`
@@ -106,16 +111,18 @@ Perform windowed cross spectral density estimation using the least-squares metho
 
 See `ls_spectral` for additional help.
 """
-function ls_windowcsd(y,u,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
+function ls_windowcsd(y,u,t,freqs=nothing; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
+    freqs === nothing && (freqs = default_freqs(t,nw))
     S       = zeros(ComplexF64,length(freqs))
-    windows = Windows2(y,t,nw,noverlap,window_func)
-    for (y,t) in windows
-        xy = estimator(y,t,freqs,windows.W; kwargs...)
-        xu = estimator(u,t,freqs,windows.W; kwargs...)
+    windowsy = Windows2(y,t,nw,noverlap,window_func)
+    windowsu = Windows2(u,t,nw,noverlap,window_func)
+    for ((y,t), (u,_)) in zip(windowsy, windowsu)
+        xy = estimator(y,t,freqs,windowsy.W; kwargs...)[1]
+        xu = estimator(u,t,freqs,windowsu.W; kwargs...)[1]
         # Cross spectrum
-        S += xy.*conj.(xu)
+        S += nw.*xy.*conj.(xu)
     end
-    return S
+    return S, freqs
 end
 
 
@@ -136,21 +143,22 @@ Perform spectral coherence estimation using the least-squares method.
 `estimator = ls_sparse_spectral` See `ls_sparse_spectral` for more help.
 See also `ls_windowcsd` and `ls_spectral` for additional help.
 """
-function ls_cohere(y,u,t,freqs; nw = 10, noverlap = -1, estimator=ls_spectral, kwargs...)
+function ls_cohere(y,u,t,freqs=nothing; nw = 10, noverlap = -1, estimator=ls_spectral, kwargs...)
+    freqs === nothing && (freqs = default_freqs(t,nw))
     Syy     = zeros(length(freqs))
     Suu     = zeros(length(freqs))
     Syu     = zeros(ComplexF64,length(freqs))
     windows = Windows3(y,t,u,nw,noverlap,hanning)
     for (y,t,u) in windows
-        xy      = estimator(y,t,freqs,windows.W; kwargs...)
-        xu      = estimator(u,t,freqs,windows.W; kwargs...)
+        xy      = estimator(y,t,freqs,windows.W; kwargs...)[1]
+        xu      = estimator(u,t,freqs,windows.W; kwargs...)[1]
         # Cross spectrum
         Syu .+= xy.*conj.(xu)
         Syy .+= abs2.(xy)
         Suu .+= abs2.(xu)
     end
     Sch = abs2.(Syu)./(Suu.*Syy)
-    return Sch
+    return Sch, freqs
 end
 
 @inline _K(V,vc,gamma) = exp.(-gamma*(V.-vc).^2)
@@ -193,7 +201,7 @@ See the paper For additional details.
 `coulomb` Assume discontinuity at `v=0` (useful for signals where, e.g., Coulomb friction might cause issues.)\n
 `normalize` Use normalized basis functions (See paper for details).
 
-The method will issue a warning if less than 90% of the variance in `Y` is described by the estimated model. If this is the case, try increasing either the number of frequencies or the number of basis functions per frequency. Alternatively, try lowering the regularization parameter `λ`.
+The method will issue a warning If less than 90% of the variance in `Y` is described by the estimated model. If this is the case, try increasing either the number of frequencies or the number of basis functions per frequency. Alternatively, try lowering the regularization parameter `λ`.
 
 See also `psd`, `ls_sparse_spectral_lpv` and `ls_windowpsd_lpv`
 """

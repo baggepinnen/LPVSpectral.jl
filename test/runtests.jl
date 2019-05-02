@@ -91,22 +91,52 @@ end
 
 end
 
-# @testset "ls methods" begin
-T = 1000
-t = 0:T-1
-y = sin.(t)
-x = ls_spectral(y,t)
-@test findmax(abs.(x)) ≈ (0.960418853827, 160)
+@testset "ls methods" begin
+    T = 1000
+    t = 0:T-1
+    f = LPVSpectral.default_freqs(t)
+    @test f[1] == 0
+    @test f[end] == 0.5-1/length(t)/2
+    @test length(f) == T÷2
 
-f = LinRange(0,0.5,length(y)÷2)
-W = ones(length(y))
-x = ls_spectral(y,t,f,W)
-@test findmax(abs.(x)) ≈ (0.95642926188, 160)
+    # f2 = LPVSpectral.default_freqs(t,10)
+    # @test f2[1] == 0
+    # @test f2[end] == 0.5-1/length(t)/2
+    # @test length(f2) == T÷2÷10
 
-x = tls_spectral(y,t)
-@test findmax(abs.(x)) ≈ (0.960418853827, 160)
+    @test LPVSpectral.check_freq(f) == 1
+    @test_throws ArgumentError LPVSpectral.check_freq([1,0,2])
+    A, z = LPVSpectral.get_fourier_regressor(t,f)
+    @test size(A) == (T,2length(f)-1)
 
-# end
+    y = sin.(t)
+    x,_ = ls_spectral(y,t)
+    @test findmax(abs.(x)) ≈ (0.9999773730281, 160)
+
+    W = ones(length(y))
+    x,_ = ls_spectral(y,t,f,W)
+    @test findmax(abs.(x)) ≈ (0.999977373027, 160)
+
+    x,_ = tls_spectral(y,t)
+    @test findmax(abs.(x)) ≈ (0.9999777508878254, 160)
+
+    x,_ = ls_windowpsd(y,t; nw=20)
+    @test findmax(abs.(x)) ≈ (1.000783557456378, 160)
+
+    x,_ = ls_windowpsd(y,t)
+    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160)
+
+    x,_ = ls_windowcsd(y,y,t)
+    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160)
+
+
+    x,_ = ls_cohere(y,y,t)
+    @test findmax(abs.(x))[1] ≈ 1
+
+    x,_ = ls_cohere(y,y .+ 10randn.(),t)
+    @test mean(abs.(x)) ≈ 0.5 atol = 0.15
+
+end
 
 @testset "plots" begin
 
