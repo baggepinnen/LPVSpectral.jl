@@ -109,29 +109,30 @@ end
     A, z = LPVSpectral.get_fourier_regressor(t,f)
     @test size(A) == (T,2length(f)-1)
 
+    Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
     y = sin.(t)
     x,_ = ls_spectral(y,t)
-    @test findmax(abs.(x)) ≈ (0.9999773730281, 160)
+    @test findmax(abs.(x)) ≈ (0.9999773730281, 160) atol=0.001
 
     W = ones(length(y))
     x,_ = ls_spectral(y,t,f,W)
-    @test findmax(abs.(x)) ≈ (0.999977373027, 160)
+    @test findmax(abs.(x)) ≈ (0.999977373027, 160) atol=0.001
 
     x,_ = tls_spectral(y,t)
-    @test findmax(abs.(x)) ≈ (0.9999777508878254, 160)
+    @test findmax(abs.(x)) ≈ (0.9999777508878254, 160) atol=0.001
 
     x,_ = ls_windowpsd(y,t; nw=20)
-    @test findmax(abs.(x)) ≈ (1.000783557456378, 160)
+    @test findmax(abs.(x)) ≈ (1.000783557456378, 160) atol=0.001
 
     x,_ = ls_windowpsd(y,t)
-    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160)
+    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
 
     x,_ = ls_windowcsd(y,y,t)
-    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160)
+    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
 
 
     x,_ = ls_cohere(y,y,t)
-    @test findmax(abs.(x))[1] ≈ 1
+    @test findmax(abs.(x))[1] ≈ 1 atol=0.001
 
     x,_ = ls_cohere(y,y .+ 10randn.(),t)
     @test mean(abs.(x)) ≈ 0.5 atol = 0.15
