@@ -16,7 +16,7 @@ end
     title --> "Spectrum"
     yscale --> :log10
     xguide --> "Frequency"
-    seriestype --> :path
+    seriestype := :path
 end
 
 
