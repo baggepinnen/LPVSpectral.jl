@@ -1,5 +1,3 @@
-
-
 function detrend!(x::Vector, order=0, t = 1:length(x))
     x[:] .-= mean(x)
     if order == 1
@@ -53,6 +51,25 @@ function real_complex_bs(A,b, λ=0)
     Ar = [real(A) imag(A)]
     xr = λ > 0 ? [Ar; λ*I]\[b;zeros(2n)] : Ar\b
     x  = complex.(xr[1:n], xr[n+1:end])
+end
+
+function fourier_solve(A,y,zerofreq,λ=0)
+    n  = size(A,2)
+    x = λ > 0 ? [A; λ*I]\[y;zeros(n)] : A\y
+    fourier2complex(x,zerofreq)
+end
+
+function fourier2complex(x,zerofreq)
+    n = length(x)÷2
+    if zerofreq === nothing
+        return complex.(x[1:n], x[n+1:end])
+    else
+        x0 = x[zerofreq]
+        x = deleteat!(copy(x), zerofreq)
+        x = complex.(x[1:n], x[n+1:end])
+        insert!(x,zerofreq,x0)
+        return x
+    end
 end
 
 

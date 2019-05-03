@@ -4,20 +4,20 @@ using Test, LinearAlgebra, Statistics, Random
 using Plots, DSP
 Random.seed!(0)
 # write your own tests here
+function generate_signal(f,w,N, modphase=false)
+    x = sort(10rand(N)) # Sample points
+    v = range(0, stop=1, length=N) # Scheduling variable
 
-@testset "LPVSpectral" begin
-    function generate_signal(f,w,N, modphase=false)
-        x = sort(10rand(N)) # Sample points
-        v = range(0, stop=1, length=N) # Scheduling variable
+    # generate output signal
+    # phase_matrix
+    dependence_matrix = Float64[f[(i-1)%length(f)+1].(v) for v in v, i in eachindex(w)] # N x nw
+    frequency_matrix = [cos(w*x -0.5modphase*(dependence_matrix[i,j])) for (i,x) in enumerate(x), (j,w) in enumerate(w)] # N x nw
+    y = sum(dependence_matrix.*frequency_matrix,dims=2)[:] # Sum over all frequencies
+    y += 0.1randn(size(y))
+    y,v,x,frequency_matrix, dependence_matrix
+end
 
-        # generate output signal
-        # phase_matrix
-        dependence_matrix = Float64[f[(i-1)%length(f)+1].(v) for v in v, i in eachindex(w)] # N x nw
-        frequency_matrix = [cos(w*x -0.5modphase*(dependence_matrix[i,j])) for (i,x) in enumerate(x), (j,w) in enumerate(w)] # N x nw
-        y = sum(dependence_matrix.*frequency_matrix,dims=2)[:] # Sum over all frequencies
-        y += 0.1randn(size(y))
-        y,v,x,frequency_matrix, dependence_matrix
-    end
+@testset "LPV methods" begin
 
 
     N      = 500 # Number of training data points
@@ -88,6 +88,54 @@ end
     cn2 = ComplexNormal(z)
     @test norm(Matrix(cn.Γ)-Matrix(cn2.Γ)) < 0.01
     @test norm(Matrix(cn.C)-Matrix(cn2.C)) < 0.01
+
+end
+
+@testset "ls methods" begin
+    T = 1000
+    t = 0:T-1
+    f = LPVSpectral.default_freqs(t)
+    @test f[1] == 0
+    @test f[end] == 0.5-1/length(t)/2
+    @test length(f) == T÷2
+
+    # f2 = LPVSpectral.default_freqs(t,10)
+    # @test f2[1] == 0
+    # @test f2[end] == 0.5-1/length(t)/2
+    # @test length(f2) == T÷2÷10
+
+    @test LPVSpectral.check_freq(f) == 1
+    @test_throws ArgumentError LPVSpectral.check_freq([1,0,2])
+    A, z = LPVSpectral.get_fourier_regressor(t,f)
+    @test size(A) == (T,2length(f)-1)
+
+    Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
+    y = sin.(t)
+    x,_ = ls_spectral(y,t)
+    @test findmax(abs.(x)) ≈ (0.9999773730281, 160) atol=0.001
+
+    W = ones(length(y))
+    x,_ = ls_spectral(y,t,f,W)
+    @test findmax(abs.(x)) ≈ (0.999977373027, 160) atol=0.001
+
+    x,_ = tls_spectral(y,t)
+    @test findmax(abs.(x)) ≈ (0.9999777508878254, 160) atol=0.001
+
+    x,_ = ls_windowpsd(y,t; nw=20)
+    @test findmax(abs.(x)) ≈ (1.000783557456378, 160) atol=0.001
+
+    x,_ = ls_windowpsd(y,t)
+    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+
+    x,_ = ls_windowcsd(y,y,t)
+    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+
+
+    x,_ = ls_cohere(y,y,t)
+    @test findmax(abs.(x))[1] ≈ 1 atol=0.001
+
+    x,_ = ls_cohere(y,y .+ 10randn.(),t)
+    @test mean(abs.(x)) ≈ 0.5 atol = 0.15
 
 end
 

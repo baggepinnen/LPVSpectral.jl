@@ -15,8 +15,8 @@ end
 @recipe function plot_spectrum(::Type{Val{:spectrum}}, plt::AbstractPlot)
     title --> "Spectrum"
     yscale --> :log10
-    xguide --> "Frequency / [\$F_s\$]"
-    seriestype := :path
+    xguide --> "Frequency"
+    seriestype --> :path
 end
 
 
