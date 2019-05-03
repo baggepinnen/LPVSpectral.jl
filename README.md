@@ -47,22 +47,32 @@ ls_sparse_spectral_lpv  # LPV spectral decomposition with group-lasso penalty on
 ls_windowpsd_lpv        # Windowed power spectral density estimation with LPV method
 ```
 
+All function have docstrings available in the REPL. The general pattern is
+```
+x,f = ls_XXX(y,t,f=default_freqs(t) [, W]; kwargs...)
+```
+where `x` are the complex Fourier coefficients and `f` are the frequency points. If no frequency vector is supplied, the default is to assume a sample time of 1 and use an equidistant grid from 0 to 0.5 of `length(t)÷2`.
+`W` is an optional weight vector of `length(y)` for weighted least-squares estimation. Some methods accept keyword arguments, these methods are `ls_windowpsd, ls_windowcsd, ls_cohere` and the keywords and their defaults are
+`nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral`.
+
+
 # Sparse spectral estimation
+We provide a number of ways to estimate spare spectra.
 ## L₁ regularized spectral estimation
 Minimize ||y-Ax||₂² + λ||x||₁ where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; proxg=NormL1(λ), tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
+`x = ls_sparse_spectral(y,t,ω; proxg=NormL1(λ), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)`
 
 ## L₀ regularized spectral estimation
 Minimize ||y-Ax||₂² + λ||x||₀ where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
+`x = ls_sparse_spectral(y,t,ω; proxg=NormL0(λ), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)`
 
 ## L₀ constrained spectral estimation
-Minimize ||y-Ax||₂² s.t. ||x||₀ ≦ r where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; proxg=IndBallL0(r), tol=1e-9, printerval=100, iters=30000, μ=0.000001)`
+Minimize ||y-Ax||₂² s.t. ||x||₀ ≦ r where x are the Fourier coefficients. Enforces an `r`-sparse spectrum
+`x = ls_sparse_spectral(y,t,ω; proxg=IndBallL0(r), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)`
 
 ## Sparse LPV spectral estimation
-See example above
-`se = ls_sparse_spectral_lpv(Y,X,V,ω_test,Nv; λ = 0.1, normalize = normal, tol=1e-8, printerval=10, iters=6000)`
+See detailed example below and Bagge 2018.
+`se = ls_sparse_spectral_lpv(Y,X,V,ω_test,Nv; λ = 0.1, normalize = normal, tol=1e-8, printerval=100, iters=6000)`
 
 
 # LPV spectral estimation
@@ -138,3 +148,15 @@ plot!(w_test,spectrum_lpvs/fs, lab="Sparse LPV", l=:scatter, m=:o, c=:green)
 ![window](figs/spectrum.png)
 
 When the three frequencies in w have been identified, `w_test` can be replaced by `w` for a nicer plot. As indicated by the last figure, the sparse estimate using group-lasso is better at identifying the three frequency components present (with a small bias in the estimation of the true frequencies).
+
+# Plotting
+This package defines a recipe for plotting of periodogram types from `DSP.jl`. You can thus type
+```julia
+using LPVSpectral, DSP, Plots
+plot(periodogram(y))
+plot(welch_pgram(y))
+```
+We also define a series recipe called `:spectrum`, used like so:
+```julia
+plot(f,abs2.(x),seriestype=:spectrum)
+```

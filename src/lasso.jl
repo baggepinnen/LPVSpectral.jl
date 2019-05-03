@@ -82,12 +82,9 @@ function ls_sparse_spectral(y,t,f=default_freqs(t);
     kwargs...)
 
     A,zerofreq  = get_fourier_regressor(t,f)
-
     params = init ? fourier_solve(A,y,λ) : fill(0., length(f)) # Initialize with standard least squares
     x      = [real.(params); imag.(params)]
-
     proxf  = ProximalOperators.LeastSquares(A,y, iterative=true)
-
     x,z    = ADMM(x, proxf, proxg; kwargs...)
     params = fourier2complex(z, zerofreq)
     params, f
@@ -100,13 +97,11 @@ function ls_sparse_spectral(y,t,f, W;
     kwargs...)
 
     Φ,zerofreq  = get_fourier_regressor(t,f)
-
     x      = zeros(size(Φ,2))
     Wd     = Diagonal(W)
     Q      = Φ'Wd*Φ
     q      = -Φ'Wd*y
     proxf  = ProximalOperators.QuadraticIterative(2Q,2q)
-
     x,z = ADMM(x, proxf, proxg; kwargs...)
     params = fourier2complex(z, zerofreq)
     params, f
@@ -133,7 +128,6 @@ function ADMM(x,proxf,proxg;
     u     = zeros(size(x))
     tmp   = similar(u)
     for i = 1:iters
-
         tmp .= z.-u
         prox!(x, proxf, tmp, μ)
         tmp .= x .+ u
