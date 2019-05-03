@@ -64,7 +64,7 @@ end
 
 
 
-"""`ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y), [window]; λ=1,
+"""`x,f = ls_sparse_spectral(y,t,f=default_freqs(t), [window::AbstractVector]; λ=1,
 proxg      = ProximalOperators.NormL1(λ),
 kwargs...)`
 
@@ -75,24 +75,22 @@ Fourier coefficients, change kwarg `proxg` to e.g. `NormL0(λ)` for a different 
 `t` is the sampling points
 `f` is a vector of frequencies
 """
-function ls_sparse_spectral(y,t,f=(0:((length(y)-1)/2))/length(y);
+function ls_sparse_spectral(y,t,f=default_freqs(t);
     init       = false,
     λ          = 1,
     proxg      = NormL1(λ),
     kwargs...)
 
-    N      = length(y)
-    Nf     = length(f)
-    A      = [exp(2π*f[fn]*t[n]*im) for n = 1:N, fn = 1:Nf]
+    A,zerofreq  = get_fourier_regressor(t,f)
 
-    params = init ? real_complex_bs(A,y,λ) : fill(0., Nf) # Initialize with standard least squares
+    params = init ? fourier_solve(A,y,λ) : fill(0., length(f)) # Initialize with standard least squares
     x      = [real.(params); imag.(params)]
-    Φ      = [real.(A) imag.(A)]
 
-    proxf  = ProximalOperators.LeastSquares(Φ,y, iterative=true)
+    proxf  = ProximalOperators.LeastSquares(A,y, iterative=true)
 
     x,z    = ADMM(x, proxf, proxg; kwargs...)
-    params = complex.(z[1:end÷2], z[end÷2+1:end])
+    params = fourier2complex(z, zerofreq)
+    params, f
 end
 
 
@@ -101,23 +99,17 @@ function ls_sparse_spectral(y,t,f, W;
     proxg      = NormL1(λ),
     kwargs...)
 
-    N  = length(y)
-    Nf = length(f)
-    Φ  = zeros(N,2Nf)
-    for fn=1:Nf, n = 1:N
-        phi        = 2π*f[fn]*t[n]
-        Φ[n,fn]    = cos(phi)
-        Φ[n,fn+Nf] = -sin(phi)
-    end
+    Φ,zerofreq  = get_fourier_regressor(t,f)
 
-    x      = zeros(2Nf)
+    x      = zeros(size(Φ,2))
     Wd     = Diagonal(W)
     Q      = Φ'Wd*Φ
     q      = -Φ'Wd*y
     proxf  = ProximalOperators.QuadraticIterative(2Q,2q)
 
     x,z = ADMM(x, proxf, proxg; kwargs...)
-    params = complex.(z[1:end÷2], z[end÷2+1:end])
+    params = fourier2complex(z, zerofreq)
+    params, f
 end
 
 """
