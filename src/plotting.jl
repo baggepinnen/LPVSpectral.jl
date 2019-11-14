@@ -86,7 +86,7 @@ end
         for i = 1:Nf
             @series begin
                 seriestype := path3d
-                (fg[i,:],vg[i,:],F[i,:])
+                fg[i,:],vg[i,:],F[i,:]
             end
         end
     else
@@ -100,9 +100,9 @@ end
                 m = mcmean && bounds ? FBm[i,:] : F[i,:]
                 if bounds
                     # fillrange := FBu[i,:]
-                    ribbon := (-FBl[i,:] + m, FBu[i,:] - m)
+                    ribbon := [-FBl[i,:] + m, FBu[i,:] - m]
                 end
-                (vg[i,:],m)
+                vg[i,:],m
             end
         end
         if phase
@@ -115,9 +115,9 @@ end
                     fillalpha := 0.1
                     pi = P[i,:]
                     if bounds
-                        ribbon := (-PBl[i,:] + pi, PBu[i,:] - pi)
+                        ribbon := [-PBl[i,:] + pi, PBu[i,:] - pi]
                     end
-                    (vg[i,:],pi)
+                    vg[i,:],pi
                 end
             end
         end
