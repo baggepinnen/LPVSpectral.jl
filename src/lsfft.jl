@@ -1,4 +1,4 @@
-default_freqs(t, nw=1) = LinRange(0,0.5-1/length(t)/2,length(t)÷2)
+default_freqs(t, nw=1) = LinRange(0,0.5/mean(diff(t))-1/length(t)/2,length(t)÷2)
 
 function check_freq(f)
     zerofreq = findfirst(iszero, f)

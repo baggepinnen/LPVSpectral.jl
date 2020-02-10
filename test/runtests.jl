@@ -17,6 +17,11 @@ function generate_signal(f,w,N, modphase=false)
     y,v,x,frequency_matrix, dependence_matrix
 end
 
+@testset "LPVSpectral" begin
+    @info "Testing LPVSpectral"
+
+
+
 @testset "LPV methods" begin
 
 
@@ -150,3 +155,5 @@ end
 end
 
 include("test_lasso.jl")
+
+end

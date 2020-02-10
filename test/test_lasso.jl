@@ -29,9 +29,9 @@ using LPVSpectral, Plots, DSP, ProximalOperators
     zeronan(x) = ifelse(x==0, NaN, x)
     callback(x,z) = ()#plot(max.(abs2.([complex.(x[1:end÷2], x[end÷2+1:end]) complex.(z[1:end÷2], z[end÷2+1:end])]), 1e-20), reuse=true, show=true)
 
-    ses = ls_sparse_spectral_lpv(Y,X,V,w_test,Nv; λ = λs, normalize = normal, tol=1e-8, printerval=10, iters=2000, cb=callback) # Perform LPV spectral estimation
+    ses = ls_sparse_spectral_lpv(Y,X,V,w_test,Nv; λ = λs, normalize = normal, tol=1e-8, printerval=100, iters=2000, cb=callback) # Perform LPV spectral estimation
     se  = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = 0.02, normalize = normal)
-    xs  = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; λ=20, tol=1e-9, printerval=2, iters=9000, μ=0.00001,cb=callback)
+    xs  = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; λ=20, tol=1e-9, printerval=100, iters=9000, μ=0.00001,cb=callback)
     # xsi = LPVSpectral.ls_sparse_spectral(Y,X,1:0.1:25; proxg=IndBallL0(6), λ=0.5, tol=1e-9, printerval=100, iters=9000, μ=0.0001,cb=callback)
     xsw = ls_windowpsd(Y,X,1:0.5:22; nw=2, estimator=ls_sparse_spectral, λ=0.2, tol=1e-10, printerval=10000, iters=60000, μ=0.0001)
 
