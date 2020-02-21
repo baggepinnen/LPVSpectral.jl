@@ -6,18 +6,13 @@ end
 
 
 @recipe function plot_periodogram(p::DSP.Periodograms.TFR)
-    seriestype := :spectrum
     title --> "Periodogram"
+    yscale --> :log10
+    xguide --> "Frequency"
     p.freq, p.power
 end
 
 
-@recipe function plot_spectrum(::Type{Val{:spectrum}}, plt::AbstractPlot)
-    title --> "Spectrum"
-    yscale --> :log10
-    xguide --> "Frequency"
-    seriestype := :path
-end
 
 
 # @userplot SchedFunc

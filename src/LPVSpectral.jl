@@ -76,6 +76,8 @@ include("windows.jl")
 include("plotting.jl")
 include("lsfft.jl")
 include("lasso.jl")
+include("mel.jl")
+
 
 # Functions
 export ls_spectral,
@@ -92,6 +94,8 @@ SpectralExt,
 psd,
 detrend,
 detrend!
+
+export melspectrogram, mfcc, mel
 
 # Re-export
 export Windows

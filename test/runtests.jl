@@ -20,140 +20,172 @@ end
 @testset "LPVSpectral" begin
     @info "Testing LPVSpectral"
 
+@testset "Mel" begin
+    @info "Testing Mel"
 
-
-@testset "LPV methods" begin
-
-
-    N      = 500 # Number of training data points
-    f      = [v->2v^2, v->2/(5v+1), v->3exp(-10*(v-0.5)^2),] # Functional dependences on the scheduling variable
-    w      = 2pi*[2,10,20] # Frequency vector
-    w_test = 2π*collect(2:2:25)
-    Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N,true)
-
-    λ      = 0.02 # Regularization parmater
-    normal = true # Use normalized basis functions
-    Nv     = 50 # Number of basis functions
-
-    se = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
-    windowpsd = ls_windowpsd_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal)
-
-    spectrum_lpv   = psd(se)
-
-    si = sortperm(spectrum_lpv[:],rev=true)
-    @test Set(si[1:3]) == Set([1,5,10])
-
-    si = sortperm(windowpsd[:],rev=true)
-    @test Set(si[1:3]) == Set([1,5,10])
-end
-
-@testset "detrend" begin
-    tre = [1,2,3]
-    @test detrend(tre) == [-1,0,1]
-    @test tre == [1,2,3] # Shouldn't have changed
-    detrend!(tre)
-    @test tre == [-1,0,1] # Should have changed
-end
-
-
-## Test ComplexNormal
-@testset "Complex Normal" begin
-    n  = 10
-    n2 = 5
-    a  = randn(n)
-    A  = randn(n,n)
-    A  = A'A + I
-    b  = randn(n2)
-    B  = randn(n2,n2)
-    B  = B'B + I
-    X  = randn(n,n2)
-    Y  = randn(n,n2)
-    cn = ComplexNormal(X,Y)
-    @test size(cn.m) == (n2,)
-    @test size(cn.Γ) == (n2,n2)
-    @test size(cn.C) == (n2,n2)
-    # affine_transform(cn, B, b)
-    pdf(cn,b)
-    pdf(cn,im*b)
-
-    @test isa(cn_Vxx(A,A), Cholesky)
-    @test isa(cn_fVxx(A,A), Matrix)
-    @test issymmetric(cn_fVxx(A,A))
-    cn_V(A,0.1A)
-
-    cn  = ComplexNormal(a,A)
-    cn  = ComplexNormal(im*b,A)
-
-    A   = randn(4,4);
-    A   = A'A
-    x   = randn(1000,3)
-    y   = randn(1000,3)
-    cn  = ComplexNormal(x,y)
-    z   = rand(cn,1000000);
-    cn2 = ComplexNormal(z)
-    @test norm(Matrix(cn.Γ)-Matrix(cn2.Γ)) < 0.01
-    @test norm(Matrix(cn.C)-Matrix(cn2.C)) < 0.01
-
-end
-
-@testset "ls methods" begin
-    T = 1000
-    t = 0:T-1
-    f = LPVSpectral.default_freqs(t)
-    @test f[1] == 0
-    @test f[end] == 0.5-1/length(t)/2
-    @test length(f) == T÷2
-
-    # f2 = LPVSpectral.default_freqs(t,10)
-    # @test f2[1] == 0
-    # @test f2[end] == 0.5-1/length(t)/2
-    # @test length(f2) == T÷2÷10
-
-    @test LPVSpectral.check_freq(f) == 1
-    @test_throws ArgumentError LPVSpectral.check_freq([1,0,2])
-    A, z = LPVSpectral.get_fourier_regressor(t,f)
-    @test size(A) == (T,2length(f)-1)
-
-    Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
-    y = sin.(t)
-    x,_ = ls_spectral(y,t)
-    @test findmax(abs.(x)) ≈ (0.9999773730281, 160) atol=0.001
-
-    W = ones(length(y))
-    x,_ = ls_spectral(y,t,f,W)
-    @test findmax(abs.(x)) ≈ (0.999977373027, 160) atol=0.001
-
-    x,_ = tls_spectral(y,t)
-    @test findmax(abs.(x)) ≈ (0.9999777508878254, 160) atol=0.001
-
-    x,_ = ls_windowpsd(y,t; nw=20)
-    @test findmax(abs.(x)) ≈ (1.000783557456378, 160) atol=0.001
-
-    x,_ = ls_windowpsd(y,t)
-    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
-
-    x,_ = ls_windowcsd(y,y,t)
-    @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
-
-
-    x,_ = ls_cohere(y,y,t)
-    @test findmax(abs.(x))[1] ≈ 1 atol=0.001
-
-    x,_ = ls_cohere(y,y .+ 10randn.(),t)
-    @test mean(abs.(x)) ≈ 0.5 atol = 0.15
-
-end
-
-@testset "plots" begin
+    M = mel(1,256)
+    @test size(M,1) == 128
+    @test size(M,2) == 256÷2+1
+    M = mel(1000,256, fmin=100)
+    sum(M[:,1:26]) == 0
 
     y = randn(1000)
-    plot(periodogram(y))
-    plot(periodogram(filtfilt(ones(4), [4], y)))
-    plot(welch_pgram(y))
+    M = melspectrogram(y)
+    @test length(freq(M)) == 128
+    @test size(M.power) == (128,14)
+    @test length(time(M)) == 14
+    plot(M)
+
+    M = mfcc(y)
+    @test length(freq(M)) == 20
+    @test size(M.mfcc) == (20,14)
+    @test length(time(M)) == 14
+
 
 
 end
 
-include("test_lasso.jl")
+    @testset "LPV methods" begin
+        @info "testing LPV methods"
+
+        N      = 500 # Number of training data points
+        f      = [v->2v^2, v->2/(5v+1), v->3exp(-10*(v-0.5)^2),] # Functional dependences on the scheduling variable
+        w      = 2pi*[2,10,20] # Frequency vector
+        w_test = 2π*collect(2:2:25)
+        Y,V,X,frequency_matrix, dependence_matrix = generate_signal(f,w,N,true)
+
+        λ      = 0.02 # Regularization parmater
+        normal = true # Use normalized basis functions
+        Nv     = 50 # Number of basis functions
+
+        se = ls_spectral_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal) # Perform LPV spectral estimation
+        @show plot(se, phase=true)
+        windowpsd = ls_windowpsd_lpv(Y,X,V,w_test,Nv; λ = λ, normalize = normal)
+
+        spectrum_lpv   = psd(se)
+
+        si = sortperm(spectrum_lpv[:],rev=true)
+        @test Set(si[1:3]) == Set([1,5,10])
+
+        si = sortperm(windowpsd[:],rev=true)
+        @test Set(si[1:3]) == Set([1,5,10])
+    end
+
+    @testset "detrend" begin
+        @info "testing detrend"
+        tre = [1,2,3]
+        @test detrend(tre) == [-1,0,1]
+        @test tre == [1,2,3] # Shouldn't have changed
+        detrend!(tre)
+        @test tre == [-1,0,1] # Should have changed
+    end
+
+
+    ## Test ComplexNormal
+    @testset "Complex Normal" begin
+        @info "testing Complex Normal"
+        n  = 10
+        n2 = 5
+        a  = randn(n)
+        A  = randn(n,n)
+        A  = A'A + I
+        b  = randn(n2)
+        B  = randn(n2,n2)
+        B  = B'B + I
+        X  = randn(n,n2)
+        Y  = randn(n,n2)
+        cn = ComplexNormal(X,Y)
+        @test size(cn.m) == (n2,)
+        @test size(cn.Γ) == (n2,n2)
+        @test size(cn.C) == (n2,n2)
+        # affine_transform(cn, B, b)
+        pdf(cn,b)
+        pdf(cn,im*b)
+
+        @test isa(cn_Vxx(A,A), Cholesky)
+        @test isa(cn_fVxx(A,A), Matrix)
+        @test issymmetric(cn_fVxx(A,A))
+        cn_V(A,0.1A)
+
+        cn  = ComplexNormal(a,A)
+        cn  = ComplexNormal(im*b,A)
+
+        A   = randn(4,4);
+        A   = A'A
+        x   = randn(1000,3)
+        y   = randn(1000,3)
+        cn  = ComplexNormal(x,y)
+        z   = rand(cn,1000000);
+        cn2 = ComplexNormal(z)
+        @test norm(Matrix(cn.Γ)-Matrix(cn2.Γ)) < 0.01
+        @test norm(Matrix(cn.C)-Matrix(cn2.C)) < 0.01
+
+    end
+
+    @testset "ls methods" begin
+        @info "testing ls methods"
+        T = 1000
+        t = 0:T-1
+        f = LPVSpectral.default_freqs(t)
+        @test f[1] == 0
+        @test f[end] == 0.5-1/length(t)/2
+        @test length(f) == T÷2
+
+        # f2 = LPVSpectral.default_freqs(t,10)
+        # @test f2[1] == 0
+        # @test f2[end] == 0.5-1/length(t)/2
+        # @test length(f2) == T÷2÷10
+
+        @test LPVSpectral.check_freq(f) == 1
+        @test_throws ArgumentError LPVSpectral.check_freq([1,0,2])
+        A, z = LPVSpectral.get_fourier_regressor(t,f)
+        @test size(A) == (T,2length(f)-1)
+
+        Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
+        y = sin.(t)
+        x,_ = ls_spectral(y,t)
+        @test findmax(abs.(x)) ≈ (0.9999773730281, 160) atol=0.001
+
+        W = ones(length(y))
+        x,_ = ls_spectral(y,t,f,W)
+        @test findmax(abs.(x)) ≈ (0.999977373027, 160) atol=0.001
+
+        x,_ = tls_spectral(y,t)
+        @test findmax(abs.(x)) ≈ (0.9999777508878254, 160) atol=0.001
+
+        x,_ = ls_windowpsd(y,t; nw=20)
+        @test findmax(abs.(x)) ≈ (1.000783557456378, 160) atol=0.001
+
+        x,_ = ls_windowpsd(y,t)
+        @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+
+        x,_ = ls_windowcsd(y,y,t)
+        @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+
+
+        x,_ = ls_cohere(y,y,t)
+        @test findmax(abs.(x))[1] ≈ 1 atol=0.001
+
+        x,_ = ls_cohere(y,y .+ 10randn.(),t)
+        @test mean(abs.(x)) ≈ 0.5 atol = 0.15
+
+    end
+
+    @testset "plots" begin
+        @info "testing plots"
+
+        y = randn(1000)
+        @show plot(periodogram(y))
+        @show plot(periodogram(filtfilt(ones(4), [4], y)))
+        @show plot(welch_pgram(y))
+
+
+    end
+
+    @testset "Lasso" begin
+        @info "Testing Lasso"
+
+        include("test_lasso.jl")
+    end
 
 end
