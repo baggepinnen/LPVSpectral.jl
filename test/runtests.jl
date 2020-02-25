@@ -1,4 +1,3 @@
-
 using LPVSpectral
 using Test, LinearAlgebra, Statistics, Random
 using Plots, DSP
@@ -20,30 +19,30 @@ end
 @testset "LPVSpectral" begin
     @info "Testing LPVSpectral"
 
-@testset "Mel" begin
-    @info "Testing Mel"
+    @testset "Mel" begin
+        @info "Testing Mel"
 
-    M = mel(1,256)
-    @test size(M,1) == 128
-    @test size(M,2) == 256÷2+1
-    M = mel(1000,256, fmin=100)
-    sum(M[:,1:26]) == 0
+        M = mel(1,256)
+        @test size(M,1) == 128
+        @test size(M,2) == 256÷2+1
+        M = mel(1000,256, fmin=100)
+        sum(M[:,1:26]) == 0
 
-    y = randn(1000)
-    M = melspectrogram(y)
-    @test length(freq(M)) == 128
-    @test size(M.power) == (128,14)
-    @test length(time(M)) == 14
-    plot(M)
+        y = randn(1000)
+        M = melspectrogram(y)
+        @test length(freq(M)) == 128
+        @test size(M.power) == (128,14)
+        @test length(time(M)) == 14
+        plot(M)
 
-    M = mfcc(y)
-    @test length(freq(M)) == 20
-    @test size(M.mfcc) == (20,14)
-    @test length(time(M)) == 14
+        M = mfcc(y)
+        @test length(freq(M)) == 20
+        @test size(M.mfcc) == (20,14)
+        @test length(time(M)) == 14
 
 
 
-end
+    end
 
     @testset "LPV methods" begin
         @info "testing LPV methods"
@@ -144,30 +143,31 @@ end
         Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
         y = sin.(t)
         x,_ = ls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (0.9999773730281, 160) atol=0.001
+        @test findmax(abs.(x)) ≈ (1.0, 160) atol=1e-4
 
         W = ones(length(y))
         x,_ = ls_spectral(y,t,f,W)
-        @test findmax(abs.(x)) ≈ (0.999977373027, 160) atol=0.001
+        @test findmax(abs.(x)) ≈ (1.0, 160) atol=1e-4
 
         x,_ = tls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (0.9999777508878254, 160) atol=0.001
+        @test findmax(abs.(x)) ≈ (1.0, 160) atol=1e-4
 
-        x,_ = ls_windowpsd(y,t; nw=20)
-        @test findmax(abs.(x)) ≈ (1.000783557456378, 160) atol=0.001
+        x,_ = ls_windowpsd(y,t,noverlap=0)
+        @test findmax(x) ≈ (1.0, 160) atol=0.01
 
-        x,_ = ls_windowpsd(y,t)
-        @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+        x,_ = ls_windowpsd(y,t,nw=16,noverlap=0)
+        @test findmax(abs.(x)) ≈ (1.0, 160) atol=0.15
 
-        x,_ = ls_windowcsd(y,y,t)
-        @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+        x,_ = ls_windowcsd(y,y,t,noverlap=0)
+        @test findmax(abs.(x)) ≈ (1.0, 160) atol=0.12
 
 
         x,_ = ls_cohere(y,y,t)
-        @test findmax(abs.(x))[1] ≈ 1 atol=0.001
+        @test all(x .== 1)
 
-        x,_ = ls_cohere(y,y .+ 10randn.(),t)
-        @test mean(abs.(x)) ≈ 0.5 atol = 0.15
+        x,_ = ls_cohere(y,y .+ 5randn.(),t,nw=8,noverlap=-1)
+        @show mean(x)
+        @test mean(x) < 0.9
 
     end
 

@@ -78,7 +78,7 @@ function tls_spectral(y,t,f=default_freqs(t))
 end
 
 
-"""`S,f = ls_windowpsd(y,t,freqs; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)`
+"""`S,f = ls_windowpsd(y,t,freqs; nw = 8, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)`
 
 perform widowed spectral estimation using the least-squares method.
 `window_func` defaults to `Windows.rect`
@@ -88,13 +88,17 @@ perform widowed spectral estimation using the least-squares method.
 
 See `ls_spectral` for additional help.
 """
-function ls_windowpsd(y,t,freqs=nothing; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
+function ls_windowpsd(y,t,freqs=nothing; nw = 8, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
     freqs === nothing && (freqs = default_freqs(t,nw))
-    windows = Windows2(y,t,nw,noverlap,window_func)
+    n = length(y)÷nw
+    windows = Windows2(y,t,n,noverlap,window_func)
     S       = zeros(length(freqs))
+    noverlap = windows.ys.noverlap
+    poverlap = max(noverlap,1)/n
+    r = mean(abs2,windows.W)
     for (yi,ti) in windows
         x  = estimator(yi,ti,freqs,windows.W; kwargs...)[1]
-        S += nw .* abs2.(x)
+        S += r*nw/(1+poverlap) .* abs2.(x)
     end
     return S, freqs
 end
@@ -113,14 +117,18 @@ See `ls_spectral` for additional help.
 """
 function ls_windowcsd(y,u,t,freqs=nothing; nw = 10, noverlap = -1, window_func=rect, estimator=ls_spectral, kwargs...)
     freqs === nothing && (freqs = default_freqs(t,nw))
+    n = length(y)÷nw
     S       = zeros(ComplexF64,length(freqs))
-    windowsy = Windows2(y,t,nw,noverlap,window_func)
-    windowsu = Windows2(u,t,nw,noverlap,window_func)
+    windowsy = Windows2(y,t,n,noverlap,window_func)
+    windowsu = Windows2(u,t,n,noverlap,window_func)
+    noverlap = windowsy.ys.noverlap
+    poverlap = max(noverlap,1)/n
+    r = mean(abs2,windowsy.W)
     for ((y,t), (u,_)) in zip(windowsy, windowsu)
         xy = estimator(y,t,freqs,windowsy.W; kwargs...)[1]
         xu = estimator(u,t,freqs,windowsu.W; kwargs...)[1]
         # Cross spectrum
-        S += nw.*xy.*conj.(xu)
+        S +=  nw/(1+poverlap) .*xy.*conj.(xu)
     end
     return S, freqs
 end
@@ -148,7 +156,7 @@ function ls_cohere(y,u,t,freqs=nothing; nw = 10, noverlap = -1, estimator=ls_spe
     Syy     = zeros(length(freqs))
     Suu     = zeros(length(freqs))
     Syu     = zeros(ComplexF64,length(freqs))
-    windows = Windows3(y,t,u,nw,noverlap,hanning)
+    windows = Windows3(y,t,u,length(y)÷nw,noverlap,hanning)
     for (y,t,u) in windows
         xy      = estimator(y,t,freqs,windows.W; kwargs...)[1]
         xu      = estimator(u,t,freqs,windows.W; kwargs...)[1]
@@ -235,7 +243,7 @@ See `?ls_spectral_lpv` for additional help.
 """
 function ls_windowpsd_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w,Nv::Integer, nw::Int=10, noverlap=0;  kwargs...)
     S       = zeros(length(w))
-    windows = Windows3(Y,X,V,nw,noverlap,rect) # ones produces a rectangular window
+    windows = Windows3(Y,X,V,length(Y)÷nw,noverlap,rect) # ones produces a rectangular window
     for (y,x,v) in windows
         x  = ls_spectral_lpv(y,x,v,w,Nv; kwargs...)
         rp = reshape_params(x.x,length(w))
