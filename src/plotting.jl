@@ -12,6 +12,29 @@ end
     p.freq, p.power
 end
 
+@recipe function plot_spectrogram(p::DSP.Periodograms.Spectrogram)
+    seriestype := :heatmap
+    title --> "Spectrogram"
+    yscale --> :log10
+    yguide --> "Frequency"
+    xlabel --> "Time [s]"
+    p.time, p.freq[2:end], log.(p.power)[2:end,:]
+end
+
+
+@recipe function mel(h::MelSpectrogram)
+    seriestype := :heatmap
+    xlabel --> "Time [s]"
+    ylabel --> "Frequency [Hz]"
+    # yticks --> yr
+    # xticks --> xr
+    title --> "Mel Spectrogram"
+    yscale := :log10
+    freqs = (mel_to_hz(h.mels)[2:end])
+
+    h.time, freqs, log.(h.power)[2:end,:]
+end
+
 
 
 

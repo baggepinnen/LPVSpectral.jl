@@ -177,6 +177,8 @@ end
 
         y = randn(1000)
         @show plot(periodogram(y))
+        @show plot(spectrogram(y))
+        @show plot(melspectrogram(y))
         @show plot(periodogram(filtfilt(ones(4), [4], y)))
         @show plot(welch_pgram(y))
 
