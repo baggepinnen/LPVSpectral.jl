@@ -73,10 +73,10 @@ end
 
 include("utilities.jl")
 include("windows.jl")
+include("mel.jl")
 include("plotting.jl")
 include("lsfft.jl")
 include("lasso.jl")
-include("mel.jl")
 
 
 # Functions

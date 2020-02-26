@@ -19,6 +19,48 @@ end
 @testset "LPVSpectral" begin
     @info "Testing LPVSpectral"
 
+
+
+    @testset "Windows" begin
+        @info "Testing Windows"
+
+        y = 1:100
+        t = 1:100
+        W = Windows2(y,t,10,0)
+        @test length(W) == 10
+        @test first(W) == (1:10,1:10)
+        res = mapwindows(W) do (y,t)
+            -y
+        end
+        @test res == -1:-1:-100
+
+        W = Windows2(y,t,10,1)
+        @test length(W) == 11
+        cW = collect(W)
+        @test cW[1] == (1:10,1:10)
+        @test cW[2] == (10:19,10:19)
+
+        res = mapwindows(W) do (y,t)
+            -y
+        end
+        @test res == -1:-1:-100
+
+        y = 1:100
+        t = 1:100
+        W = Windows3(y,t,t,10,0)
+        @test length(W) == 10
+        @test first(W) == (1:10,1:10,1:10)
+
+        W = Windows3(y,t,t,10,1)
+        @test length(W) == 11
+        cW = collect(W)
+        @test cW[1] == (1:10,1:10,1:10)
+        @test cW[2] == (10:19,10:19,10:19)
+
+
+
+    end
+
     @testset "Mel" begin
         @info "Testing Mel"
 

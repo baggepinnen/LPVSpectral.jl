@@ -1,6 +1,8 @@
 abstract type AbstractWindows end
 Base.length(w::AbstractWindows) = length(w.ys);
 
+Base.collect(W::AbstractWindows) = [copy.(w) for w in W]
+
 # Window2 ==========================================================
 struct Windows2 <: AbstractWindows
     y::AbstractVector
@@ -13,12 +15,14 @@ struct Windows2 <: AbstractWindows
 
     noverlap = -1 sets the noverlap to n/2
 
+    Iterating `w::Windows2` produces `(y,t)` of specified length. The window is *not* applied to the signal, instead the window array is available as `w.W`.
+
     #Arguments:
     - `y`: Signal
     - `t`: Time vector
     - `n`: Number of datapoints per window
     - `noverlap`: Overlap between windows
-    - `window_func`: Function to apply over window
+    - `window_func`: Function to create a vector of weights, e.g., `DSP.hanning, DSP.rect` etc.
     """
     function Windows2(y,t,n::Int=length(y)>>3, noverlap::Int=n>>1,window_func=rect)
 
@@ -33,18 +37,20 @@ struct Windows2 <: AbstractWindows
 end
 
 function Base.iterate(w::Windows2, state=1)
-    state > length(w.ys) && return nothing
+    state > length(w) && return nothing
     ((w.ys[state],w.ts[state]), state+1)
 end
 
+"""
+    mapwindows(f, W::AbstractWindows)
 
+Apply a Function `f` over all windows represented by `W::Windows2`.
+`f` must take `(y,t)->ŷ` where `y` and `ŷ` have the same length.
+"""
 function mapwindows(f, W::AbstractWindows)
     res = map(f,W)
     merge(res,W)
 end
-
-
-
 
 function Base.merge(yf::AbstractVector{<:AbstractVector},w::Windows2)
     ym = zeros(eltype(yf[1]), length(w.y))
