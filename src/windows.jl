@@ -1,4 +1,5 @@
 abstract type AbstractWindows end
+Base.length(w::AbstractWindows) = length(w.ys);
 
 # Window2 ==========================================================
 struct Windows2 <: AbstractWindows
@@ -8,7 +9,7 @@ struct Windows2 <: AbstractWindows
     ts
     W
     """
-        Windows2(y, t, n=length(y)÷8, noverlap=-1, window_func=identity)
+        Windows2(y, t, n=length(y)÷8, noverlap=-1, window_func=rect)
 
     noverlap = -1 sets the noverlap to n/2
 
@@ -19,7 +20,7 @@ struct Windows2 <: AbstractWindows
     - `noverlap`: Overlap between windows
     - `window_func`: Function to apply over window
     """
-    function Windows2(y,t,n::Int=length(y)>>3, noverlap::Int=n>>1,window_func=identity)
+    function Windows2(y,t,n::Int=length(y)>>3, noverlap::Int=n>>1,window_func=rect)
 
         noverlap < 0 && (noverlap = n>>1)
         N   = length(y)
@@ -37,6 +38,13 @@ function Base.iterate(w::Windows2, state=1)
 end
 
 
+function mapwindows(f, W::AbstractWindows)
+    res = map(f,W)
+    merge(res,W)
+end
+
+
+
 
 function Base.merge(yf::AbstractVector{<:AbstractVector},w::Windows2)
     ym = zeros(eltype(yf[1]), length(w.y))
@@ -44,10 +52,10 @@ function Base.merge(yf::AbstractVector{<:AbstractVector},w::Windows2)
     dpw = length(w.ys[1])
     inds =  1:dpw
 
-    for i in 1:w.nw
+    for i in eachindex(w.ys)
         ym[inds] .+= yf[i]
         counts[inds] .+= 1
-        inds = inds .+ (w.dpw-w.noverlap)
+        inds = inds .+ (dpw-w.ys.noverlap)
         inds =  inds[1]:min(inds[end], length(ym))
     end
     ym ./= max.(counts,1)
@@ -55,7 +63,7 @@ end
 
 # Window3 ==========================================================
 """
-    Windows3(y, t, v, n=length(y)÷8, noverlap=-1, window_func=identity)
+    Windows3(y, t, v, n=length(y)÷8, noverlap=-1, window_func=rect)
 
 noverlap = -1 sets the noverlap to n/2
 
@@ -75,7 +83,7 @@ struct Windows3 <: AbstractWindows
     ts
     vs
     W
-    function Windows3(y::AbstractVector,t::AbstractVector,v::AbstractVector,n::Int=length(y)>>3, noverlap::Int=n>>1,window_func::Function=identity)
+    function Windows3(y::AbstractVector,t::AbstractVector,v::AbstractVector,n::Int=length(y)>>3, noverlap::Int=n>>1,window_func::Function=rect)
         N       = length(y)
         @assert N == length(t) == length(v) "y, t and v has to be the same length"
         noverlap < 0 && (noverlap = n>>1)
@@ -92,5 +100,3 @@ function Base.iterate(w::Windows3, state=1)
     state > length(w.ys) && return nothing
     ((w.ys[state],w.ts[state],w.vs[state]), state+1)
 end
-
-Base.length(w::AbstractWindows) = length(w.ys);

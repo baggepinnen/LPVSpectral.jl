@@ -98,7 +98,7 @@ detrend!
 export melspectrogram, mfcc, mel
 
 # Re-export
-export Windows
+export Windows, Windows2, Windows3, mapwindows
 
 
 # ComplexNormal

@@ -123,12 +123,12 @@ end
 
     @testset "ls methods" begin
         @info "testing ls methods"
-        T = 1000
-        t = 0:T-1
+        T = 100
+        t = 0:0.1:T-0.1
         f = LPVSpectral.default_freqs(t)
         @test f[1] == 0
-        @test f[end] == 0.5-1/length(t)/2
-        @test length(f) == T÷2
+        @test f[end] == 5
+        @test length(f) == 10T÷2+1
 
         # f2 = LPVSpectral.default_freqs(t,10)
         # @test f2[1] == 0
@@ -138,36 +138,37 @@ end
         @test LPVSpectral.check_freq(f) == 1
         @test_throws ArgumentError LPVSpectral.check_freq([1,0,2])
         A, z = LPVSpectral.get_fourier_regressor(t,f)
-        @test size(A) == (T,2length(f)-1)
+        @test size(A) == (10T,2length(f)-1)
 
         Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
-        y = sin.(t)
+        y = sin.(2pi .* t)
         x,_ = ls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (1.0, 160) atol=1e-4
+        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
 
         W = ones(length(y))
         x,_ = ls_spectral(y,t,f,W)
-        @test findmax(abs.(x)) ≈ (1.0, 160) atol=1e-4
+        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
 
-        x,_ = tls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (1.0, 160) atol=1e-4
+        x,freqs = tls_spectral(y,t)
+        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
 
-        x,_ = ls_windowpsd(y,t,noverlap=0)
-        @test findmax(x) ≈ (1.0, 160) atol=0.01
+        x,freqs = ls_windowpsd(y,t,noverlap=0)
+        @test findmax(x)[2] ==  13
 
-        x,_ = ls_windowpsd(y,t,nw=16,noverlap=0)
-        @test findmax(abs.(x)) ≈ (1.0, 160) atol=0.15
+        x,freqs = ls_windowpsd(y,t,nw=16,noverlap=0)
+        @test findmax(abs.(x))[2] ==  7
 
-        x,_ = ls_windowcsd(y,y,t,noverlap=0)
-        @test findmax(abs.(x)) ≈ (1.0, 160) atol=0.12
+        x,freqs = ls_windowcsd(y,y,t,noverlap=0)
+        @test findmax(abs.(x)) ≈ (1.0, 11) atol=1e-4
 
 
         x,_ = ls_cohere(y,y,t)
         @test all(x .== 1)
 
-        x,_ = ls_cohere(y,y .+ 5randn.(),t,nw=8,noverlap=-1)
+        x,freqs = ls_cohere(y,y .+ 0.5 .*randn.(),t,nw=8,noverlap=-1)
         @show mean(x)
-        @test mean(x) < 0.9
+        @test findmax(x) ≈ (1.0, 14) atol=0.15
+        @test mean(x) < 0.25
 
     end
 
