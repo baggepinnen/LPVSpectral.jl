@@ -155,8 +155,5 @@ This package defines a recipe for plotting of periodogram types from `DSP.jl`. Y
 using LPVSpectral, DSP, Plots
 plot(periodogram(y))
 plot(welch_pgram(y))
-```
-We also define a series recipe called `:spectrum`, used like so:
-```julia
-plot(f,abs2.(x),seriestype=:spectrum)
+plot(melspectrogram(y)) # melspectrogram, mel, mfcc are defined in this package
 ```
