@@ -17,7 +17,7 @@ struct Windows2 <: AbstractWindows
 
     Iterating `w::Windows2` produces `(y,t)` of specified length. The window is *not* applied to the signal, instead the window array is available as `w.W`.
 
-    #Arguments:
+    # Arguments:
     - `y`: Signal
     - `t`: Time vector
     - `n`: Number of datapoints per window
@@ -47,10 +47,12 @@ end
 Apply a Function `f` over all windows represented by `W::Windows2`.
 `f` must take `(y,t)->ŷ` where `y` and `ŷ` have the same length.
 """
-function mapwindows(f, W::AbstractWindows)
+function mapwindows(f::Function, W::AbstractWindows)
     res = map(f,W)
     merge(res,W)
 end
+
+mapwindows(f::Function, args...) = mapwindows(f, Windows2(args...))
 
 function Base.merge(yf::AbstractVector{<:AbstractVector},w::Windows2)
     ym = zeros(eltype(yf[1]), length(w.y))
