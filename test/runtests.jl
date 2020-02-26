@@ -1,4 +1,3 @@
-
 using LPVSpectral
 using Test, LinearAlgebra, Statistics, Random
 using Plots, DSP
@@ -20,30 +19,72 @@ end
 @testset "LPVSpectral" begin
     @info "Testing LPVSpectral"
 
-@testset "Mel" begin
-    @info "Testing Mel"
-
-    M = mel(1,256)
-    @test size(M,1) == 128
-    @test size(M,2) == 256÷2+1
-    M = mel(1000,256, fmin=100)
-    sum(M[:,1:26]) == 0
-
-    y = randn(1000)
-    M = melspectrogram(y)
-    @test length(freq(M)) == 128
-    @test size(M.power) == (128,14)
-    @test length(time(M)) == 14
-    plot(M)
-
-    M = mfcc(y)
-    @test length(freq(M)) == 20
-    @test size(M.mfcc) == (20,14)
-    @test length(time(M)) == 14
 
 
+    @testset "Windows" begin
+        @info "Testing Windows"
 
-end
+        y = 1:100
+        t = 1:100
+        W = Windows2(y,t,10,0)
+        @test length(W) == 10
+        @test first(W) == (1:10,1:10)
+        res = mapwindows(W) do (y,t)
+            -y
+        end
+        @test res == -1:-1:-100
+
+        W = Windows2(y,t,10,1)
+        @test length(W) == 11
+        cW = collect(W)
+        @test cW[1] == (1:10,1:10)
+        @test cW[2] == (10:19,10:19)
+
+        res = mapwindows(W) do (y,t)
+            -y
+        end
+        @test res == -1:-1:-100
+
+        y = 1:100
+        t = 1:100
+        W = Windows3(y,t,t,10,0)
+        @test length(W) == 10
+        @test first(W) == (1:10,1:10,1:10)
+
+        W = Windows3(y,t,t,10,1)
+        @test length(W) == 11
+        cW = collect(W)
+        @test cW[1] == (1:10,1:10,1:10)
+        @test cW[2] == (10:19,10:19,10:19)
+
+
+
+    end
+
+    @testset "Mel" begin
+        @info "Testing Mel"
+
+        M = mel(1,256)
+        @test size(M,1) == 128
+        @test size(M,2) == 256÷2+1
+        M = mel(1000,256, fmin=100)
+        sum(M[:,1:26]) == 0
+
+        y = randn(1000)
+        M = melspectrogram(y)
+        @test length(freq(M)) == 128
+        @test size(M.power) == (128,14)
+        @test length(time(M)) == 14
+        plot(M)
+
+        M = mfcc(y)
+        @test length(freq(M)) == 20
+        @test size(M.mfcc) == (20,14)
+        @test length(time(M)) == 14
+
+
+
+    end
 
     @testset "LPV methods" begin
         @info "testing LPV methods"
@@ -124,12 +165,12 @@ end
 
     @testset "ls methods" begin
         @info "testing ls methods"
-        T = 1000
-        t = 0:T-1
+        T = 100
+        t = 0:0.1:T-0.1
         f = LPVSpectral.default_freqs(t)
         @test f[1] == 0
-        @test f[end] == 0.5-1/length(t)/2
-        @test length(f) == T÷2
+        @test f[end] == 5
+        @test length(f) == 10T÷2+1
 
         # f2 = LPVSpectral.default_freqs(t,10)
         # @test f2[1] == 0
@@ -139,35 +180,37 @@ end
         @test LPVSpectral.check_freq(f) == 1
         @test_throws ArgumentError LPVSpectral.check_freq([1,0,2])
         A, z = LPVSpectral.get_fourier_regressor(t,f)
-        @test size(A) == (T,2length(f)-1)
+        @test size(A) == (10T,2length(f)-1)
 
         Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
-        y = sin.(t)
+        y = sin.(2pi .* t)
         x,_ = ls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (0.9999773730281, 160) atol=0.001
+        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
 
         W = ones(length(y))
         x,_ = ls_spectral(y,t,f,W)
-        @test findmax(abs.(x)) ≈ (0.999977373027, 160) atol=0.001
+        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
 
-        x,_ = tls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (0.9999777508878254, 160) atol=0.001
+        x,freqs = tls_spectral(y,t)
+        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
 
-        x,_ = ls_windowpsd(y,t; nw=20)
-        @test findmax(abs.(x)) ≈ (1.000783557456378, 160) atol=0.001
+        x,freqs = ls_windowpsd(y,t,noverlap=0)
+        @test findmax(x)[2] ==  13
 
-        x,_ = ls_windowpsd(y,t)
-        @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+        x,freqs = ls_windowpsd(y,t,nw=16,noverlap=0)
+        @test findmax(abs.(x))[2] ==  7
 
-        x,_ = ls_windowcsd(y,y,t)
-        @test findmax(abs.(x)) ≈ (1.0011490769234443, 160) atol=0.001
+        x,freqs = ls_windowcsd(y,y,t,noverlap=0)
+        @test findmax(abs.(x)) ≈ (1.0, 11) atol=1e-4
 
 
         x,_ = ls_cohere(y,y,t)
-        @test findmax(abs.(x))[1] ≈ 1 atol=0.001
+        @test all(x .== 1)
 
-        x,_ = ls_cohere(y,y .+ 10randn.(),t)
-        @test mean(abs.(x)) ≈ 0.5 atol = 0.15
+        x,freqs = ls_cohere(y,y .+ 0.5 .*randn.(),t,nw=8,noverlap=-1)
+        @show mean(x)
+        @test findmax(x) ≈ (1.0, 14) atol=0.15
+        @test mean(x) < 0.25
 
     end
 
@@ -176,6 +219,8 @@ end
 
         y = randn(1000)
         @show plot(periodogram(y))
+        @show plot(spectrogram(y))
+        @show plot(melspectrogram(y))
         @show plot(periodogram(filtfilt(ones(4), [4], y)))
         @show plot(welch_pgram(y))
 

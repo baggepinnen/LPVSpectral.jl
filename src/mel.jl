@@ -122,17 +122,3 @@ function dct_matrix(nfilters::Int, ninput::Int)
     basis *= sqrt(2f0/ninput)
     basis
 end
-
-
-@recipe function mel(h::MelSpectrogram)
-    seriestype := :heatmap
-    xlabel --> "Time [s]"
-    ylabel --> "Frequency [Hz]"
-    # yticks --> yr
-    # xticks --> xr
-    title --> "Mel Spectrogram"
-    yscale := :log10
-    freqs = (mel_to_hz(h.mels)[2:end])
-
-    h.time, freqs, log.(h.power)[2:end,:]
-end

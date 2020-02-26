@@ -73,10 +73,10 @@ end
 
 include("utilities.jl")
 include("windows.jl")
+include("mel.jl")
 include("plotting.jl")
 include("lsfft.jl")
 include("lasso.jl")
-include("mel.jl")
 
 
 # Functions
@@ -98,7 +98,7 @@ detrend!
 export melspectrogram, mfcc, mel
 
 # Re-export
-export Windows
+export Windows, Windows2, Windows3, mapwindows
 
 
 # ComplexNormal
