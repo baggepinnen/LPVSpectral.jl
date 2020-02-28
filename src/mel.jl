@@ -1,7 +1,14 @@
 fft_frequencies(fs::Real, nfft::Int) = LinRange(0f0, fs / 2f0, (nfft >> 1) + 1)
 
 
-"""The Mel spectrogram"""
+"""
+    MelSpectrogram{T, F, Ti} <: DSP.Periodograms.TFR{T}
+
+# Arguments:
+- `power::Matrix{T}`
+- `mels::F`
+- `time::Ti`
+"""
 struct MelSpectrogram{T, F,Ti} <: DSP.Periodograms.TFR{T}
     power::Matrix{T}
     mels::F
@@ -10,7 +17,14 @@ end
 DSP.freq(tfr::MelSpectrogram) = tfr.mels
 Base.time(tfr::MelSpectrogram) = tfr.time
 
-"""A TFR subtype where each column represents an MFCC vector"""
+"""
+    MFCC{T, F, Ti} <: DSP.Periodograms.TFR{T}
+
+# Arguments:
+- `mfcc::Matrix{T}`
+- `number::F`
+- `time::Ti`
+"""
 struct MFCC{T, F, Ti} <: DSP.Periodograms.TFR{T}
     mfcc::Matrix{T}
     number::F
@@ -89,19 +103,49 @@ function mel(fs::Real, nfft::Int; nmels::Int = 128, fmin::Real = 0f0, fmax::Real
     weights
 end
 
-function melspectrogram(s, n=div(length(s), 8), args...; fs=1, nmels::Int = 128, fmin::Real = 0f0, fmax::Real = fs / 2f0, kwargs...)
-    S = DSP.spectrogram(s, n, args...; fs=fs, kwargs...)
+
+"""
+    melspectrogram(s, n=div(length(s), 8), args...; fs=1, nmels::Int=128, fmin::Real=0.0f0, fmax::Real=fs / 2.0f0, window=hanning, kwargs...)
+
+DOCSTRING
+
+#Arguments:
+- `s`: signal
+- `n`: number of points in each window
+- `args`: are sent to `spectrogram`
+- `fs`: sample frequency
+- `nmels`: number of mel frequencies
+- `fmin`: minimum freq
+- `fmax`: maximum freq
+- `window`: window function, defaults to hanning
+- `kwargs`: are sent to `spectrogram`
+"""
+function melspectrogram(s, n=div(length(s), 8), args...; fs=1, nmels::Int = 128, fmin::Real = 0f0, fmax::Real = fs / 2f0, window=hanning, kwargs...)
+    S = DSP.spectrogram(s, n, args...; fs=fs, window=window, kwargs...)
     data = mel(fs, n; nmels=nmels, fmin=fmin, fmax=fmax) * S.power
     nframes = size(data, 2)
     MelSpectrogram(data, LinRange(hz_to_mel(fmin)[1], hz_to_mel(fmax)[1], nmels), S.time)
 end
 
 
-function mfcc(s, args...; nmfcc::Int = 20, nmels::Int = 128, kwargs...)
+"""
+    mfcc(s, args...; nmfcc::Int=20, nmels::Int=128, window=hanning, kwargs...)
+
+DOCSTRING
+
+#Arguments:
+- `s`: signal
+- `args`: are sent to `spectrogram`
+- `nmfcc`: number of coeffs
+- `nmels`: number of mel frequencies
+- `window`: window function, defaults to hanning
+- `kwargs`: are sent to `spectrogram`
+"""
+function mfcc(s, args...; nmfcc::Int = 20, nmels::Int = 128, window=hanning, kwargs...)
     if nmfcc >= nmels
         error("number of mfcc components should be less than the number of mel frequency bins")
     end
-    M = melspectrogram(s, args...; nmels=nmels, kwargs...)
+    M = melspectrogram(s, args...; nmels=nmels, window=window, kwargs...)
     mfcc = dct_matrix(nmfcc, nmels) * power(M)
 
     for frame in 1:size(mfcc, 2)

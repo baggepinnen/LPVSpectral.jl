@@ -45,6 +45,10 @@ ls_cohere               # Least-squares cross coherence estimation (sparse estim
 ls_spectral_lpv         # LPV spectral decomposition
 ls_sparse_spectral_lpv  # LPV spectral decomposition with group-lasso penalty on frequencies (uses ADMM)
 ls_windowpsd_lpv        # Windowed power spectral density estimation with LPV method
+
+mel                     # Compute Mel projection matrix
+melspectrogram          # Standard Mel spectrogram
+mfcc                    # Mel cepstrum spectrogram
 ```
 
 All function have docstrings available in the REPL. The general pattern is
