@@ -27,7 +27,7 @@ Periodogram types and SpectralExt type can be plotted using `plot(x::SpectralExt
 """
 module LPVSpectral
 using LinearAlgebra, Statistics, Printf
-using DSP, FFTW
+using DSP, FFTW, StatsBase
 using RecipesBase
 using ProximalOperators
 
@@ -77,6 +77,7 @@ include("mel.jl")
 include("plotting.jl")
 include("lsfft.jl")
 include("lasso.jl")
+include("autocov.jl")
 
 
 # Functions
@@ -93,7 +94,9 @@ basis_activation_func,
 SpectralExt,
 psd,
 detrend,
-detrend!
+detrend!,
+autocov,
+autocor
 
 export melspectrogram, mfcc, mel
 

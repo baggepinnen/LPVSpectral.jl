@@ -1,5 +1,5 @@
 using LPVSpectral
-using Test, LinearAlgebra, Statistics, Random
+using Test, LinearAlgebra, Statistics, Random, StatsBase
 using Plots, DSP
 Random.seed!(0)
 # write your own tests here
@@ -229,8 +229,67 @@ end
 
     @testset "Lasso" begin
         @info "Testing Lasso"
-
         include("test_lasso.jl")
+    end
+
+
+    @testset "autocov" begin
+        @info "Testing autocov"
+
+
+        y = repeat([1.,0.,-1.],100)
+        τ,acf = autocov(1:length(y), y, 0:length(y)-1)
+        acf0 = autocov(y, demean=false)
+        acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
+        @test acfh ≈ acf0 rtol=0.01
+        @test norm(acfh - acf0) < 0.01
+
+
+        τ,acf = autocor(1:length(y), y, 0:length(y)-1)
+        acf0 = autocor(y, demean=false)
+        acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
+        @test acfh ≈ acf0 rtol=0.01
+        @test norm(acfh - acf0) < 0.1
+
+        y = randn(100)
+        τ,acf = autocor(1:length(y), y, 0:length(y)-1)
+        acf0 = autocor(y, demean=false)
+        acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
+        @test acfh ≈ acf0 rtol=0.01
+        @test norm(acfh - acf0) < 0.1
+
+
+
+        y = randn(10)
+        τ,acf = autocov(1:length(y), y, 0:length(y)-1)
+        acf0 = autocov(y, demean=false)
+        acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
+        @test acfh ≈ acf0 rtol=0.01
+        @test norm(acfh - acf0) < 0.2
+
+        y = randn(10)
+        τ,acf = autocor(1:length(y), y, 0:length(y)-1)
+        acf0 = autocor(y, demean=false)
+        acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
+        @test acfh ≈ acf0 rtol=0.03
+        @test norm(acfh - acf0) < 0.2
+
+
+        y = [randn(10) for _ in 1:10]
+        t = reshape(1:100,10,10)
+        t = collect(eachcol(t))
+        τ,acf = autocov(t, y, 0:100-1)
+        acf0 = mean(autocov.(y, demean=false))
+        acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
+        @test acfh ≈ acf0 rtol=0.01
+        @test norm(acfh - acf0) < 0.2
+
+        τ,acf = autocor(t, y, 0:100-1)
+        acf0 = mean(autocor.(y, demean=false))
+        acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
+        @test acfh ≈ acf0 rtol=0.01
+        @test norm(acfh - acf0) < 0.2
+
     end
 
 end
