@@ -120,11 +120,16 @@ DOCSTRING
 - `window`: window function, defaults to hanning
 - `kwargs`: are sent to `spectrogram`
 """
-function melspectrogram(s, n=div(length(s), 8), args...; fs=1, nmels::Int = 128, fmin::Real = 0f0, fmax::Real = fs / 2f0, window=hanning, kwargs...)
-    S = DSP.spectrogram(s, n, args...; fs=fs, window=window, kwargs...)
+function melspectrogram(S::DSP.Periodograms.Spectrogram; fs=1, nmels::Int = 128, fmin::Real = 0f0, fmax::Real = fs / 2f0)
+    n = 2size(S.power,1)-1
     data = mel(fs, n; nmels=nmels, fmin=fmin, fmax=fmax) * S.power
     nframes = size(data, 2)
     MelSpectrogram(data, LinRange(hz_to_mel(fmin)[1], hz_to_mel(fmax)[1], nmels), S.time)
+end
+
+function melspectrogram(s, n=div(length(s), 8), args...; fs=1, nmels::Int = 128, fmin::Real = 0f0, fmax::Real = fs / 2f0, window=hanning, kwargs...)
+    S = DSP.spectrogram(s, n, args...; fs=fs, window=window, kwargs...)
+    melspectrogram(S,fs=fs,nmels=nmels,fmin=fmin,fmax=fmax)
 end
 
 
