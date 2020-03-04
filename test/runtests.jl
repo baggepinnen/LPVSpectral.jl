@@ -238,21 +238,21 @@ end
 
 
         y = repeat([1.,0.,-1.],100)
-        τ,acf = autocov(1:length(y), y, 0:length(y)-1)
+        τ,acf = autocov(1:length(y), y, Inf)
         acf0 = autocov(y, demean=false)
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
         @test acfh ≈ acf0 rtol=0.01
         @test norm(acfh - acf0) < 0.01
 
 
-        τ,acf = autocor(1:length(y), y, 0:length(y)-1)
+        τ,acf = autocor(1:length(y), y, Inf)
         acf0 = autocor(y, demean=false)
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
         @test acfh ≈ acf0 rtol=0.01
         @test norm(acfh - acf0) < 0.1
 
         y = randn(100)
-        τ,acf = autocor(1:length(y), y, 0:length(y)-1)
+        τ,acf = autocor(1:length(y), y, Inf)
         acf0 = autocor(y, demean=false)
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
         @test acfh ≈ acf0 rtol=0.01
@@ -261,14 +261,14 @@ end
 
 
         y = randn(10)
-        τ,acf = autocov(1:length(y), y, 0:length(y)-1)
+        τ,acf = autocov(1:length(y), y, Inf)
         acf0 = autocov(y, demean=false)
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
         @test acfh ≈ acf0 rtol=0.01
         @test norm(acfh - acf0) < 0.2
 
         y = randn(10)
-        τ,acf = autocor(1:length(y), y, 0:length(y)-1)
+        τ,acf = autocor(1:length(y), y, Inf)
         acf0 = autocor(y, demean=false)
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
         @test acfh ≈ acf0 rtol=0.03
@@ -278,17 +278,67 @@ end
         y = [randn(10) for _ in 1:10]
         t = reshape(1:100,10,10)
         t = collect(eachcol(t))
-        τ,acf = autocov(t, y, 0:100-1)
+        τ,acf = autocov(t, y, Inf)
         acf0 = mean(autocov.(y, demean=false))
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
         @test acfh ≈ acf0 rtol=0.01
         @test norm(acfh - acf0) < 0.2
 
-        τ,acf = autocor(t, y, 0:100-1)
+        τ,acf = autocor(t, y, Inf)
         acf0 = mean(autocor.(y, demean=false))
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
         @test acfh ≈ acf0 rtol=0.01
         @test norm(acfh - acf0) < 0.2
+
+        # See what happens if one series is contant
+        y = zeros(10)
+        τ,acf = autocor(1:10, y, Inf)
+        @test all(acf .== 1)
+
+        using LPVSpectral: _autocov, _autocor, isequidistant
+
+        @test isequidistant(1:5)
+        @test isequidistant(1:2:10)
+        @test !isequidistant(reverse(1:2:10))
+        @test isequidistant(collect(1:5))
+        @test isequidistant(collect(1:2:10))
+        @test isequidistant(collect(1:0.33:10))
+
+
+        res = map(1:10) do _
+            t = 100rand(100)
+            @test !isequidistant(t)
+            t0 = 0:99
+            y = sin.(0.05 .* t)
+            y0 = sin.(0.05 .* t0)
+            τ0, acf0 = autocor(t0, y0, Inf, normalize=true)
+            τ,acf = autocor(t, y, Inf)
+            acff = filtfilt(ones(200),[200], acf)
+            @test count(τ .== 0) == length(y)
+            # plot(τ[1:10:end],acf[1:10:end])
+            # plot!(τ0[1:10:end],acf0[1:10:end])
+            # plot!(τ0[1:10:end],acff[1:10:end])
+            mean(abs2,acf0-acff) < 0.05
+        end
+        @test mean(res) > 0.7
+
+        
+        res = map(1:10) do _
+            t = 100rand(100)
+            @test !isequidistant(t)
+            t0 = 0:99
+            y = sin.(0.05 .* t)
+            y0 = sin.(0.05 .* t0)
+            τ0, acf0 = autocov(t0, y0, Inf, normalize=true)
+            τ,acf = autocov(t, y, Inf)
+            acff = filtfilt(ones(200),[200], acf)
+            @test count(τ .== 0) == length(y)
+            # plot(τ[1:10:end],acf[1:10:end])
+            # plot!(τ0[1:10:end],acf0[1:10:end])
+            # plot!(τ0[1:10:end],acff[1:10:end])
+            mean(abs2,acf0-acff) < 0.025
+        end
+        @test mean(res) > 0.7
 
     end
 
