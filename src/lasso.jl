@@ -75,15 +75,19 @@ Fourier coefficients, change kwarg `proxg` to e.g. `NormL0(λ)` for a different 
 `t` is the sampling points
 `f` is a vector of frequencies
 """
-function ls_sparse_spectral(y,t,f=default_freqs(t);
+function ls_sparse_spectral(y::AbstractArray{T},t,f=default_freqs(t);
     init       = false,
-    λ          = 1,
+    λ          = T(1),
     proxg      = NormL1(λ),
-    kwargs...)
+    kwargs...) where T
 
-    A,zerofreq  = get_fourier_regressor(t,f)
-    params = init ? fourier_solve(A,y,λ) : fill(0., length(f)) # Initialize with standard least squares
-    x      = [real.(params); imag.(params)]
+    A,zerofreq  = get_fourier_regressor(T.(t),T.(f))
+    params = init ? fourier_solve(A,y,zerofreq,λ) : fill(T(0.), length(f)) # Initialize with standard least squares
+    if zerofreq === nothing
+        x = [real.(params); imag.(params)]
+    else
+        x = [real.(params); imag.(params[2:end])]
+    end
     proxf  = ProximalOperators.LeastSquares(A,y, iterative=true)
     x,z    = ADMM(x, proxf, proxg; kwargs...)
     params = fourier2complex(z, zerofreq)
@@ -91,13 +95,13 @@ function ls_sparse_spectral(y,t,f=default_freqs(t);
 end
 
 
-function ls_sparse_spectral(y,t,f, W;
-    λ          = 1,
-    proxg      = NormL1(λ),
-    kwargs...)
+function ls_sparse_spectral(y::AbstractArray{T},t,f, W;
+    λ          = T(1),
+    proxg      = NormL1(T(λ)),
+    kwargs...) where T
 
     Φ,zerofreq  = get_fourier_regressor(t,f)
-    x      = zeros(size(Φ,2))
+    x      = zeros(T,size(Φ,2))
     Wd     = Diagonal(W)
     Q      = Φ'Wd*Φ
     q      = -Φ'Wd*y
@@ -115,17 +119,18 @@ end
     cb(x,z)    = nothing, # Callback function
     μ          = 0.05`)   # ADMM tuning parameter. If results oscillate, lower this value.
 """
-function ADMM(x,proxf,proxg;
+function ADMM(x::AbstractArray{T},proxf,proxg;
     iters      = 10000,
-    tol        = 1e-9,
+    tol        = 1e-5,
     printerval = 100,
     cb         = nothing,
-    μ          = 0.05)
+    μ          = 0.05) where T
 
     @assert 0 ≤ μ ≤ 1 "μ should be ≤ 1"
+    μ = T(μ)
 
     z     = copy(x)
-    u     = zeros(size(x))
+    u     = zeros(T,size(x))
     tmp   = similar(u)
     for i = 1:iters
         tmp .= z.-u

@@ -23,20 +23,21 @@ function check_freq(f)
     zerofreq
 end
 
-function get_fourier_regressor(t,f)
+function get_fourier_regressor(t::AbstractArray{T},f::AbstractArray{T}) where T
     zerofreq = check_freq(f)
     N  = length(t)
     Nf = length(f)
     Nreg = zerofreq === nothing ? 2Nf : 2Nf-1
     # N >= Nreg || throw(ArgumentError("Too many frequency components $Nreg > $N"))
-    A  = zeros(N,Nreg)
+    A  = zeros(T,N,Nreg)
     sinoffset = Nf
+    π2 = T(2π)
     for fn=1:Nf
         if fn == zerofreq
             sinoffset = Nf-1
         end
-        for n = 1:N
-            phi        = 2π*f[fn]*t[n]
+        @inbounds for n = 1:N
+            phi        = π2*f[fn]*t[n]
             A[n,fn]    = cos(phi)
             if fn != zerofreq
                 A[n,fn+sinoffset] = -sin(phi)
