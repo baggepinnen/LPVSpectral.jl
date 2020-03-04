@@ -12,17 +12,17 @@ end
     p.freq, p.power
 end
 
-@recipe function plot_spectrogram(p::DSP.Periodograms.Spectrogram)
+@recipe function plot_spectrogram(p::DSP.Periodograms.Spectrogram; compression=(0.005,1))
     seriestype := :heatmap
     title --> "Spectrogram"
     yscale --> :log10
     yguide --> "Frequency"
     xlabel --> "Time [s]"
-    p.time, p.freq[2:end], log.(p.power)[2:end,:]
+    p.time, p.freq[2:end], compress(log.(p.power)[2:end,:], compression)
 end
 
 
-@recipe function mel(h::MelSpectrogram)
+@recipe function mel(h::MelSpectrogram; compression=(0.005,1))
     seriestype := :heatmap
     xlabel --> "Time [s]"
     ylabel --> "Frequency [Hz]"
@@ -32,7 +32,18 @@ end
     yscale := :log10
     freqs = (mel_to_hz(h.mels)[2:end])
 
-    h.time, freqs, log.(h.power)[2:end,:]
+    h.time, freqs, compress(log.(h.power)[2:end,:], compression)
+end
+
+function compress(x, q)
+    if q isa Number
+        q = q < 0.5 ? q : 1-q
+        q = (q, 1-q)
+    else
+        q = (min(q...), max(q...))
+    end
+    th = quantile(vec(x),q)
+    clamp.(x,th...)
 end
 
 
