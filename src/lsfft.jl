@@ -32,15 +32,16 @@ function get_fourier_regressor(t::AbstractArray{T},f::AbstractArray{T}) where T
     A  = zeros(T,N,Nreg)
     sinoffset = Nf
     π2 = T(2π)
+    dd = 1/(sqrt(2*length(f))) # This is to give the spectrum the same power as using DSP.periodogram
     for fn=1:Nf
         if fn == zerofreq
             sinoffset = Nf-1
         end
         @inbounds for n = 1:N
             phi        = π2*f[fn]*t[n]
-            A[n,fn]    = cos(phi)
+            A[n,fn]    = cos(phi)*dd
             if fn != zerofreq
-                A[n,fn+sinoffset] = -sin(phi)
+                A[n,fn+sinoffset] = -sin(phi)*dd
             end
         end
     end

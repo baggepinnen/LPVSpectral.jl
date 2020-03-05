@@ -184,24 +184,24 @@ end
 
         Base.isapprox(t1::Tuple{Float64,Int64}, t2::Tuple{Float64,Int64}; atol) = all(t -> isapprox(t[1],t[2],atol=atol), zip(t1,t2))
         y = sin.(2pi .* t)
-        x,_ = ls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
+        x,freqs = ls_spectral(y,t)
+        @test findmax(abs2.(x)) ≈ (2.0length(freqs), 101) atol=1e-4
 
         W = ones(length(y))
         x,_ = ls_spectral(y,t,f,W)
-        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
+        @test findmax(abs2.(x)) ≈ (2.0length(freqs), 101) atol=1e-4
 
         x,freqs = tls_spectral(y,t)
-        @test findmax(abs.(x)) ≈ (1.0, 101) atol=1e-4
+        @test findmax(abs2.(x)) ≈ (2.0length(freqs), 101) atol=1e-4
 
         x,freqs = ls_windowpsd(y,t,noverlap=0)
-        @test findmax(x)[2] ==  13
+        @test findmax(x)[2] == 13
 
         x,freqs = ls_windowpsd(y,t,nw=16,noverlap=0)
         @test findmax(abs.(x))[2] ==  7
 
         x,freqs = ls_windowcsd(y,y,t,noverlap=0)
-        @test findmax(abs.(x)) ≈ (1.0, 11) atol=1e-4
+        @test findmax(abs.(x)) ≈ (2.0length(freqs), 11) atol=1e-4
 
 
         x,_ = ls_cohere(y,y,t)
