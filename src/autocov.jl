@@ -101,13 +101,13 @@ function StatsBase.autocor(t::AbstractVector{tT},y::AbstractVector{T},maxlag::Nu
 end
 
 
-isequidistant(v::Union{<:UnitRange, <:StepRange}) = step(v) > 0
+isequidistant(v::Union{<:UnitRange, <:StepRange, <:StepRangeLen}) = step(v) > 0
 function isequidistant(v)
     d = v[2]-v[1]
     d > 0 || return false
     d = abs(d)
     for i in 3:length(v)
-        abs(abs(v[i]-v[i-1])-d) < eps() || return false
+        abs(abs(v[i]-v[i-1])-d) < 20d*eps() || return false
     end
     true
 end
