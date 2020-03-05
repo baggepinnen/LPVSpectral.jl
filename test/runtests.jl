@@ -277,7 +277,7 @@ end
 
         y = [randn(10) for _ in 1:10]
         t = reshape(1:100,10,10)
-        t = collect(eachcol(t))
+        t = [t[:,i] for i in size(t,2)]
         τ,acf = autocov(t, y, Inf)
         acf0 = mean(autocov.(y, demean=false))
         acfh = [mean(acf[τ.==i]) for i = 0:length(acf0)-1]
