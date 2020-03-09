@@ -47,7 +47,7 @@ end
 Replaces the backslash operator For complex arguments. Expands the A-matrix into `[real(A) imag(A)]` and performs the computation using real arithmetics. Optionally accepts `λ` to solve the ridge regression problem using the formulation `[A;λI]\\[b;0]. λ should be given with the same dimension as the columns of A, i.e. if λ represents a standard deviation, then λ = σ, not λ = σ²`
 """
 function real_complex_bs(A,b, λ=0)
-    n  = size(A,2)
+    T,n  = size(A)
     Ar = [real(A) imag(A)]
     xr = λ > 0 ? [Ar; λ*I]\[b;zeros(2n)] : Ar\b
     x  = complex.(xr[1:n], xr[n+1:end])
@@ -55,7 +55,7 @@ end
 
 function fourier_solve(A,y,zerofreq,λ=0)
     n  = size(A,2)
-    x = λ > 0 ? [A; λ*I]\[y;zeros(n)] : A\y
+    x = λ > 0 ? svd([A; λ*I])\[y;zeros(n)] : svd(A)\y
     fourier2complex(x,zerofreq)
 end
 

@@ -1,7 +1,7 @@
 # default_freqs(t, nw=1) = LinRange(0,0.5/mean(diff(t))-1/length(t)/2,length(t)÷2÷nw)
 
 function default_freqs(n::Int,fs=1)
-    f = DSP.rfftfreq(n,fs)
+    f = FFTW.rfftfreq(n,fs)
     0:f.multiplier:f[end]
 end
 default_freqs(t::AbstractVector,fs=1/mean(diff(t))) = default_freqs(length(t),fs)
@@ -54,6 +54,8 @@ perform spectral estimation using the least-squares method
 `y` is the signal to be analyzed
 `t` is the sampling points
 `f` is a vector of frequencies
+
+The difference between `ls_spectral` and `rfft` is `abs.(rfft) = √(2π)abs.(x)`
 
 See also `ls_sparse_spectral` `tls_spectral`
 """
