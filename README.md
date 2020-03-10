@@ -52,7 +52,7 @@ mfcc                    # Mel cepstrum spectrogram
 ```
 
 All function have docstrings available in the REPL. The general pattern is
-```
+```julia
 x,f = ls_XXX(y,t,f=default_freqs(t) [, W]; kwargs...)
 ```
 where `x` are the complex Fourier coefficients and `f` are the frequency points. If no frequency vector is supplied, the default is to assume a sample time of 1 and use an equidistant grid from 0 to 0.5 of `length(t)÷2`.
@@ -64,19 +64,27 @@ where `x` are the complex Fourier coefficients and `f` are the frequency points.
 We provide a number of ways to estimate spare spectra.
 ## L₁ regularized spectral estimation
 Minimize ||y-Ax||₂² + λ||x||₁ where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; proxg=NormL1(λ), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)`
+```julia
+x = ls_sparse_spectral(y,t,ω; proxg=NormL1(λ), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)
+```
 
 ## L₀ regularized spectral estimation
 Minimize ||y-Ax||₂² + λ||x||₀ where x are the Fourier coefficients. Promotes a sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; proxg=NormL0(λ), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)`
+```julia
+x = ls_sparse_spectral(y,t,ω; proxg=NormL0(λ), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)
+```
 
 ## L₀ constrained spectral estimation
 Minimize ||y-Ax||₂² s.t. ||x||₀ ≦ r where x are the Fourier coefficients. Enforces an `r`-sparse spectrum
-`x = ls_sparse_spectral(y,t,ω; proxg=IndBallL0(r), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)`
+```julia
+x = ls_sparse_spectral(y,t,ω; proxg=IndBallL0(r), tol=1e-9, printerval=1000, iters=30000, μ=0.000001)
+```
 
 ## Sparse LPV spectral estimation
 See detailed example below and Bagge 2018.
-`se = ls_sparse_spectral_lpv(Y,X,V,ω_test,Nv; λ = 0.1, normalize = normal, tol=1e-8, printerval=100, iters=6000)`
+```julia
+se = ls_sparse_spectral_lpv(Y,X,V,ω_test,Nv; λ = 0.1, normalize = normal, tol=1e-8, printerval=100, iters=6000)
+```
 
 
 # LPV spectral estimation
