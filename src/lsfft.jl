@@ -59,10 +59,10 @@ The difference between `ls_spectral` and `rfft` is `abs.(rfft) = √(2π)abs.(x)
 
 See also `ls_sparse_spectral` `tls_spectral`
 """
-function ls_spectral(y,t,f=default_freqs(t); λ=1e-10)
+function ls_spectral(y,t,f=default_freqs(t); λ=1e-10, verbose=false)
     A, zerofreq = get_fourier_regressor(t,f)
     x = fourier_solve(A,y,zerofreq,λ)
-    # @info("Condition number: $(round(cond(A'A), digits=2))\n")
+    verbose && @info("Condition number: $(round(cond(A'A), digits=2))\n")
     x, f
 end
 
@@ -71,11 +71,11 @@ end
 """`x,f = ls_spectral(y,t,f,W::AbstractVector)`
 `W` is a vector of weights, same length as `y`, for weighted least-squares
 """
-function ls_spectral(y,t,f,W::AbstractVector)
+function ls_spectral(y,t,f,W::AbstractVector, verbose=false)
     A, zerofreq = get_fourier_regressor(t,f)
     Wd = Diagonal(W)
     x = (A'Wd*A + 1e-10I)\(A'Wd)*y
-    # @info("Condition number: $(round(cond(A'*Wd*A), digits=2))\n")
+    verbose && @info("Condition number: $(round(cond(A'*Wd*A), digits=2))\n")
     fourier2complex(x,zerofreq), f
 end
 
