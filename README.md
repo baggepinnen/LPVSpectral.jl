@@ -1,5 +1,5 @@
 # LPVSpectral
-[![Build Status](https://travis-ci.org/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.org/baggepinnen/LPVSpectral.jl)
+[![Build Status](https://travis-ci.com/baggepinnen/LPVSpectral.jl.svg?branch=master)](https://travis-ci.com/baggepinnen/LPVSpectral.jl)
 [![codecov](https://codecov.io/gh/baggepinnen/LPVSpectral.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/baggepinnen/LPVSpectral.jl)
 
 A toolbox for least-squares spectral estimation, sparse spectral estimation and Linear Parameter-Varying (LPV) spectral estimation. Contains an implementation of the spectral estimation method presented in
