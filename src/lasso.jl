@@ -1,4 +1,4 @@
-using ProximalOperators
+using .ProximalOperators
 
 """
 `ls_sparse_spectral_lpv(Y,X,V,w,Nv::Int; λ = 1, coulomb = false, normalize=true,

@@ -1,5 +1,5 @@
 using LPVSpectral
-using Test, LinearAlgebra, Statistics, Random, StatsBase
+using Test, LinearAlgebra, Statistics, Random, StatsBase, ProximalOperators
 using Plots, DSP
 Random.seed!(0)
 # write your own tests here

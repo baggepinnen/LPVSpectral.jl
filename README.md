@@ -51,6 +51,8 @@ melspectrogram          # Standard Mel spectrogram
 mfcc                    # Mel cepstrum spectrogram
 ```
 
+The functions that estimate sparse spectra require the user to manually import `using ProximalOperators`.
+
 All function have docstrings available in the REPL. The general pattern is
 ```julia
 x,f = ls_XXX(y,t,f=default_freqs(t) [, W]; kwargs...)
@@ -61,7 +63,7 @@ where `x` are the complex Fourier coefficients and `f` are the frequency points.
 
 
 # Sparse spectral estimation
-We provide a number of ways to estimate spare spectra.
+We provide a number of ways to estimate spare spectra. These functions require the user to manually load `using ProximalOperators`.
 ## L₁ regularized spectral estimation
 Minimize ||y-Ax||₂² + λ||x||₁ where x are the Fourier coefficients. Promotes a sparse spectrum
 ```julia

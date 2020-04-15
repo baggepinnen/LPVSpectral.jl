@@ -29,7 +29,6 @@ module LPVSpectral
 using LinearAlgebra, Statistics, Printf
 using DSP, FFTW, StatsBase
 using RecipesBase
-using ProximalOperators
 
 """
 LPV Spectral estimation result type.
@@ -76,7 +75,6 @@ include("windows.jl")
 include("mel.jl")
 include("plotting.jl")
 include("lsfft.jl")
-include("lasso.jl")
 include("autocov.jl")
 
 
@@ -109,6 +107,11 @@ export ComplexNormal
 
 export cn_V2ΓC,cn_V2ΓC,cn_Vxx,cn_Vyy,cn_Vxy,cn_Vyx,cn_fVxx,cn_fVyy,cn_fVxy,
 cn_fVyx,cn_Vs,cn_V,cn_fV,Σ,pdf,affine_transform, rand
+
+using Requires
+function __init__()
+    @require ProximalOperators = "a725b495-10eb-56fe-b38b-717eba820537" include("lasso.jl")
+end
 
 
 end # module
