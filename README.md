@@ -53,7 +53,7 @@ mfcc                    # Mel cepstrum spectrogram
 
 The functions that estimate sparse spectra require the user to manually import `using ProximalOperators`.
 
-All function have docstrings available in the REPL. The general pattern is
+All functions have docstrings available in the REPL. The general pattern is
 ```julia
 x,f = ls_XXX(y,t,f=default_freqs(t) [, W]; kwargs...)
 ```

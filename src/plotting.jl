@@ -17,15 +17,15 @@ end
     title --> "Spectrogram"
     yscale --> :log10
     yguide --> "Frequency"
-    xlabel --> "Time [s]"
+    xguide --> "Time [s]"
     p.time, p.freq[2:end], compress(log.(p.power)[2:end,:], compression)
 end
 
 
 @recipe function mel(h::MelSpectrogram; compression=(0.005,1))
     seriestype := :heatmap
-    xlabel --> "Time [s]"
-    ylabel --> "Frequency [Hz]"
+    xguide --> "Time [s]"
+    yguide --> "Frequency [Hz]"
     # yticks --> yr
     # xticks --> xr
     title --> "Mel Spectrogram"
