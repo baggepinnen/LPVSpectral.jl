@@ -253,7 +253,7 @@ function ls_spectral_lpv(Y::AbstractVector,X::AbstractVector,V::AbstractVector,w
     e           = AA*real_params-Y
     Σ           = var(e)*inv(AA'AA + λ*I)
     fva         = 1-var(e)/var(Y)
-    fva < 0.9 && warn("Fraction of variance explained = $(fva)")
+    fva < 0.9 && @warn("Fraction of variance explained = $(fva)")
     SpectralExt(Y, X, V, w, Nv, λ, coulomb, normalize, params, Σ)
 
 end
