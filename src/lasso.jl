@@ -26,12 +26,12 @@ See `?ADMM` for keyword arguments to control the solver.
 
 See also `psd`, `ls_spectral_lpv` and `ls_windowpsd_lpv`
 """
-function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::AbstractVector,
+function ls_sparse_spectral_lpv(y::AbstractVector{S}, X::AbstractVector{S}, V::AbstractVector{S},
     w, Nv::Integer;
     λ         = 1,
     coulomb   = false,
     normalize = true,
-    kwargs...)
+    kwargs...) where S
 
 
     w        = w[:]
@@ -39,24 +39,33 @@ function ls_sparse_spectral_lpv(y::AbstractVector, X::AbstractVector, V::Abstrac
     Nf       = length(w)
     K        = basis_activation_func(V,Nv,normalize,coulomb)
     M(w,X,V) = vec(vec(exp.(im.*w.*X))*K(V)')'
-    As       = zeros(ComplexF64,T,ifelse(coulomb,2,1)*Nf*Nv)
+    As       = zeros(complex(S),T,ifelse(coulomb,2,1)*Nf*Nv)
 
     for n = 1:T
         As[n,:] = M(w,X[n],V[n])
     end
 
-    x      = zeros(2size(As,2))                 # Initialize with standard least squares
+    x      = zeros(S, 2size(As,2))                 # Initialize with standard least squares
     inds   = reshape(1:length(x), Nf, :)'[:] # Permute parameters so that groups are adjacent
     inds   = vcat(inds...)
     # x    = [real.(params); imag.(params)][inds]
     Φ      = [real.(As) imag.(As)][:,inds]
     proxf  = ProximalOperators.LeastSquares(Φ,y,iterative=true)
 
-    gs     = ntuple(f->NormL2(λ), Nf)
+    gs     = ntuple(f->NormL2(S(λ)), Nf)
     indsg  = ntuple(f->((f-1)*2Nv+1:f*2Nv, ) ,Nf)
     proxg  = SlicedSeparableSum(gs, indsg)
-
-    x,z      = ADMM(x, proxf, proxg; kwargs...)
+    local x, z
+    try
+        x,z      = ADMM(x, proxf, proxg; kwargs...)
+    catch e
+        if e isa InterruptException
+            @info "Aborting"
+            z = copy(x)
+        else
+            rethrow(e)
+        end
+    end
     z      = z[sortperm(inds)]            # Sortperm is inverse of inds
     params = complex.(z[1:end÷2], z[end÷2+1:end])
     SpectralExt(y, X, V, w, Nv, λ, coulomb, normalize, params, nothing)
@@ -82,7 +91,7 @@ function ls_sparse_spectral(y::AbstractArray{T},t,f=default_freqs(t);
     kwargs...) where T
 
     A,zerofreq  = get_fourier_regressor(T.(t),T.(f))
-    params = init ? fourier_solve(A,y,zerofreq,λ) : fill(T(0.), length(f)) # Initialize with standard least squares
+    params = init ? fourier_solve(A,y,zerofreq,λ) : fill(zero(T), length(f)) # Initialize with standard least squares
     if zerofreq === nothing
         x = [real.(params); imag.(params)]
     else
