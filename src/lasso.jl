@@ -1,9 +1,7 @@
 using .ProximalOperators
 
 """
-`ls_sparse_spectral_lpv(Y,X,V,w,Nv::Int; λ = 1, coulomb = false, normalize=true,
-coulomb    = false,
-normalize  = true)
+    ls_sparse_spectral_lpv(Y,X,V,w,Nv::Int; λ = 1, coulomb = false, normalize=true)
 
 Perform LPV spectral estimation using the method presented in
 Bagge Carlson et al. "Linear Parameter-Varying Spectral Decomposition."
@@ -13,14 +11,14 @@ For a particular frequency are zero, or all are non-zero.
 This is useful in the identification of frequency components among a large set of possible frequencies.
 See the paper or README For additional details.
 
-`Y` output\n
-`X` sample locations\n
-`V` scheduling signal\n
-`w` frequency vector\n
-`Nv` number of basis functions\n
-`λ` Regularization parameter\n
-`coulomb` Assume discontinuity at `v=0` (useful For signals where, e.g., Coulomb friction might cause issues.)\n
-`normalize` Use normalized basis functions (See paper For details).
+- `Y` output
+- `X` sample locations
+- `V` scheduling signal
+- `w` frequency vector
+- `Nv` number of basis functions
+- `λ` Regularization parameter
+- `coulomb` Assume discontinuity at `v=0` (useful For signals where, e.g., Coulomb friction might cause issues.)\n
+- `normalize` Use normalized basis functions (See paper For details).
 
 See `?ADMM` for keyword arguments to control the solver.
 
