@@ -71,10 +71,10 @@ end
 """`x,f = ls_spectral(y,t,f,W::AbstractVector)`
 `W` is a vector of weights, same length as `y`, for weighted least-squares
 """
-function ls_spectral(y,t,f,W::AbstractVector, verbose=false)
+function ls_spectral(y,t,f,W::AbstractVector; verbose=false, λ=1e-10)
     A, zerofreq = get_fourier_regressor(t,f)
     Wd = Diagonal(W)
-    x = (A'Wd*A + 1e-10I)\(A'Wd)*y
+    x = (A'Wd*A + λ*I)\(A'Wd)*y
     verbose && @info("Condition number: $(round(cond(A'*Wd*A), digits=2))\n")
     fourier2complex(x,zerofreq), f
 end
