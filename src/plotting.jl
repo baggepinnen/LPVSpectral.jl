@@ -125,7 +125,7 @@ end
             yguide --> "\$A(v)\$"
             title --> "Estimated functional dependece \$A(v)\$\n"# Normalization: $normalization, along dim $normdim")#, zlabel="\$f(v)\$")
             @series begin
-                label --> "\$\\omega = $(round(fg[i,1]/pi,sigdigits=1))\\pi\$"
+                label --> "ω = $(round(fg[i,1]/pi,sigdigits=1))π"
                 m = mcmean && bounds ? FBm[i,:] : F[i,:]
                 if bounds
                     # fillrange := FBu[i,:]
