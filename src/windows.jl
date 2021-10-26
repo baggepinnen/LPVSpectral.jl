@@ -24,12 +24,12 @@ struct Windows2 <: AbstractWindows
     - `noverlap`: Overlap between windows
     - `window_func`: Function to create a vector of weights, e.g., `DSP.hanning, DSP.rect` etc.
     """
-    function Windows2(y,t,n::Int=length(y)>>3, noverlap::Int=n>>1,window_func=rect)
+    function Windows2(y::AbstractArray{T},t,n::Int=length(y)>>3, noverlap::Int=n>>1,window_func=rect) where T
 
         noverlap < 0 && (noverlap = n>>1)
         N   = length(y)
         @assert N == length(t) "y and t has to be the same length"
-        W = window_func(n)
+        W = T.(window_func(n))
         ys = arraysplit(y,n,noverlap)
         ts = arraysplit(t,n,noverlap)
         new(y,t,ys,ts,W)
