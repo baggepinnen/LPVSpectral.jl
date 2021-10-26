@@ -103,16 +103,23 @@ end
 
 
 function ls_sparse_spectral(y::AbstractArray{T},t,f, W;
+    init       = false,
     λ          = T(1),
     proxg      = NormL1(T(λ)),
     kwargs...) where T
 
-    Φ,zerofreq  = get_fourier_regressor(t,f)
-    x      = zeros(T,size(Φ,2))
+    A,zerofreq  = get_fourier_regressor(t,f)
+    params = init ? fourier_solve(A,y,zerofreq,λ) : fill(zero(T), length(f)) # Initialize with standard least squares
+    if zerofreq === nothing
+        x = [real.(params); imag.(params)]
+    else
+        x = [real.(params); imag.(params[2:end])]
+    end
     Wd     = Diagonal(W)
-    Q      = Φ'Wd*Φ
-    q      = -Φ'Wd*y
-    proxf  = ProximalOperators.QuadraticIterative(2Q,2q)
+    Q      = A'Wd*A
+    q      = A'Wd*y
+    proxf  = ProximalOperators.Quadratic(Q, q, iterative=true)
+    # proxf  = ProximalOperators.LeastSquares(A,Wd*y, iterative=true)
     x,z = ADMM(x, proxf, proxg; kwargs...)
     params = fourier2complex(z, zerofreq)
     params, f
