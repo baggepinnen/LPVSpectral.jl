@@ -131,7 +131,7 @@ function ADMM(x::AbstractArray{T},proxf,proxg;
     tol        = 1e-5,
     printerval = 100,
     cb         = nothing,
-    μ          = 0.05) where T
+    μ          = T(0.05)) where T
 
     @assert 0 ≤ μ ≤ 1 "μ should be ≤ 1"
     μ = T(μ)
