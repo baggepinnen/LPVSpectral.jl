@@ -114,12 +114,12 @@ function ls_windowpsd(y,t,freqs=nothing; nw = 8, noverlap = -1, window_func=rect
     freqs === nothing && (freqs = default_freqs(t,n))
     windows = Windows2(y,t,n,noverlap,window_func)
     nw = length(windows)
-    S       = zeros(length(freqs))
+    S       = zeros(eltype(y), length(freqs))
     noverlap = windows.ys.noverlap
     poverlap = noverlap/n
     for (yi,ti) in windows
         x  = estimator(yi,ti,freqs,windows.W; kwargs...)[1]
-        S += abs2.(x)
+        S .+= abs2.(x)
     end
     # @show (1+poverlap),nw
     return S./nw^2, freqs
