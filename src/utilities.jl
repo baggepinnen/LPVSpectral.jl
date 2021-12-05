@@ -135,7 +135,7 @@ cn_V2ΓC(V::AbstractMatrix{T}) where {T<:Real} = cn_V2ΓC(Symmetric(V))
 
 @inline cn_Vs(Γ,C) = cn_Vxx(Γ,C),cn_Vyy(Γ,C),cn_Vxy(Γ,C),cn_Vyx(Γ,C)
 @inline cn_fV(Γ,C) = [cn_fVxx(Γ,C) cn_fVxy(Γ,C); cn_fVyx(Γ,C) cn_fVyy(Γ,C)]
-@inline cn_V(Γ,C) = cholesky(cn_fV(Γ,C))
+@inline cn_V(Γ,C) = cholesky(Hermitian(cn_fV(Γ,C)))
 @inline Σ(cn::ComplexNormal) = Matrix(cn.Γ) # TODO: check this
 
 for f in [:cn_Vxx,:cn_Vyy,:cn_Vxy,:cn_Vyx,:cn_fVxx,:cn_fVyy,:cn_fVxy,:cn_fVyx,:cn_Vs,:cn_V,:cn_fV]
@@ -162,7 +162,7 @@ function pdf(cn::ComplexNormal, z)
     1/(π^k*sqrt(det(cn.Γ)*det(P))) * exp(-0.5* ld*(S\rd))
 end
 
-affine_transform(cn::ComplexNormal, A,b) = ComplexNormal(A*cn.m+b, cholesky(A*Matrix(cn.Γ)*conj(A')), Symmetric(A*cn.C*A'))
+affine_transform(cn::ComplexNormal, A,b) = ComplexNormal(A*cn.m+b, cholesky(Hermitian(A*Matrix(cn.Γ)*conj(A'))), Symmetric(A*cn.C*A'))
 
 
 function rand(cn::ComplexNormal,s::Integer)
