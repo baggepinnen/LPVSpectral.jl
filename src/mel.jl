@@ -17,6 +17,8 @@ end
 DSP.freq(tfr::MelSpectrogram) = tfr.mels
 Base.time(tfr::MelSpectrogram) = tfr.time
 
+Base.size(S::DSP.Periodograms.TFR) = size(power(S))
+
 """
     MFCC{T, F, Ti} <: DSP.Periodograms.TFR{T}
 
@@ -62,7 +64,7 @@ function mel_to_hz(mels)
     min_log_mel = (min_log_hz .- f_min) ./ f_sp
     logstep = log(6.4f0) / 27f0
 
-    @inbounds for i = 1:length(frequencies)
+    @inbounds for i = eachindex(frequencies)
         if mels[i] >= min_log_mel
             frequencies[i] = min_log_hz * exp(logstep * (mels[i] - min_log_mel))
         end
@@ -98,6 +100,9 @@ function mel(fs::Real, nfft::Int; nmels::Int = 128, fmin::Real = 0f0, fmax::Real
         upper = (melfreqs[i+2] .- fftfreqs) ./ (melfreqs[i+2] - melfreqs[i+1])
 
         weights[i, :] = max.(0, min.(lower, upper)) * enorm[i]
+        if all(iszero, @view(weights[i, :]))
+            @warn "All-zero mel bands detected: consider reducing the number of mels, current value: nmels=$nmels" maxlog=1
+        end
     end
 
     weights
@@ -127,16 +132,16 @@ function melspectrogram(S::DSP.Periodograms.Spectrogram; fs=1, nmels::Int = 128,
     MelSpectrogram(data, LinRange(hz_to_mel(fmin)[1], hz_to_mel(fmax)[1], nmels), S.time)
 end
 
-function melspectrogram(s, n=div(length(s), 8), args...; fs=1, nmels::Int = 128, fmin::Real = 0f0, fmax::Real = fs / 2f0, window=hanning, kwargs...)
+function melspectrogram(s, n=div(length(s), 12), args...; fs=1, nmels::Int = 128, fmin::Real = 0f0, fmax::Real = fs / 2f0, window=hanning, kwargs...)
     S = DSP.spectrogram(s, n, args...; fs=fs, window=window, kwargs...)
     melspectrogram(S,fs=fs,nmels=nmels,fmin=fmin,fmax=fmax)
 end
 
 
 """
-    mfcc(s, args...; nmfcc::Int=20, nmels::Int=128, window=hanning, kwargs...)
+    mfcc(s, n=div(length(s), 8), args...; nmfcc::Int=20, nmels::Int=128, window=hanning, kwargs...)
 
-DOCSTRING
+Mel Frequency Cepstral Coefficients
 
 #Arguments:
 - `s`: signal
@@ -154,7 +159,7 @@ function mfcc(s, args...; nmfcc::Int = 20, nmels::Int = 128, window=hanning, kwa
     mfcc = dct_matrix(nmfcc, nmels) * power(M)
 
     for frame in 1:size(mfcc, 2)
-        mfcc[:, frame] /= norm(mfcc[:, frame])
+        @views mfcc[:, frame] ./= norm(mfcc[:, frame])
     end
 
     MFCC(mfcc, 1:nmfcc, time(M))
@@ -168,6 +173,15 @@ function dct_matrix(nfilters::Int, ninput::Int)
         basis[i, :] = cos.(i * samples)
     end
 
-    basis *= sqrt(2f0/ninput)
+    basis .*= sqrt(2f0/ninput)
     basis
+end
+
+
+function mtspectrogram(s, n=div(length(s), 12), no = div(n,2), args...; fs=1, nfft::Int=DSP.nextfastfft(n), kwargs...)
+    ss = map(arraysplit(s,n,no)) do s
+        mt_pgram(s; nfft=nfft, kwargs...)
+    end
+    S = reduce(hcat, power.(ss));
+    DSP.Periodograms.Spectrogram(S, DSP.rfftfreq(nfft, fs), (n/2 : n-no : (size(S,2)-1)*(n-no)+n/2) / fs)
 end

@@ -9,7 +9,7 @@ end
     title --> "Periodogram"
     yscale --> :log10
     xguide --> "Frequency"
-    p.freq, p.power
+    p.freq[2:end], p.power[2:end]
 end
 
 @recipe function plot_spectrogram(p::DSP.Periodograms.Spectrogram; compression=(0.005,1))
@@ -30,9 +30,24 @@ end
     # xticks --> xr
     title --> "Mel Spectrogram"
     yscale := :log10
-    freqs = (mel_to_hz(h.mels)[2:end])
 
-    h.time, freqs, compress(log.(h.power)[2:end,:], compression)
+    freqs = (mel_to_hz(h.mels))
+
+    if h.mels[1] == 0
+        h.time, freqs[2:end], compress(log.(h.power[2:end,:]), compression)
+    else
+        h.time, freqs, compress(log.(h.power), compression)
+    end
+end
+
+
+@recipe function mel(h::MFCC)
+    seriestype := :heatmap
+    xguide --> "Time [s]"
+    # yguide --> "Frequency [Hz]"
+    title --> "MFCC"
+    yscale := :identity
+    h.time, h.number, h.mfcc
 end
 
 function compress(x, q)
