@@ -129,7 +129,7 @@ end
                 m = mcmean && bounds ? FBm[i,:] : F[i,:]
                 if bounds
                     # fillrange := FBu[i,:]
-                    ribbon := [-FBl[i,:] + m, FBu[i,:] - m]
+                    ribbon := (-FBl[i,:] .+ m, FBu[i,:] .- m)
                 end
                 vg[i,:],m
             end
@@ -144,7 +144,7 @@ end
                     fillalpha := 0.1
                     pi = P[i,:]
                     if bounds
-                        ribbon := [-PBl[i,:] + pi, PBu[i,:] - pi]
+                        ribbon := (-PBl[i,:] .+ pi, PBu[i,:] .- pi)
                     end
                     vg[i,:],pi
                 end
