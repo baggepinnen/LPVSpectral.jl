@@ -136,9 +136,9 @@ end
 """
     mfcc(s, args...; nmfcc::Int=20, nmels::Int=128, window=hanning, kwargs...)
 
-DOCSTRING
+Compute the [Mel-frequency cepstral coefficients (MFCCs)](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum)
 
-#Arguments:
+# Arguments:
 - `s`: signal
 - `args`: are sent to `spectrogram`
 - `nmfcc`: number of coeffs
