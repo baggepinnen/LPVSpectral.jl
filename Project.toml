@@ -1,7 +1,7 @@
 name = "LPVSpectral"
 uuid = "26dcc766-85df-5edc-b560-6076d5dbac63"
 author = "Fredrik Bagge Carlson <baggepinnen@gmail.com>"
-version = "0.3.2"
+version = "0.3.3"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
@@ -21,7 +21,7 @@ FFTW = "1.1"
 ProximalOperators = "0.10, 0.15"
 RecipesBase = "1.0"
 Requires = "1.0"
-StatsBase = "0.33"
+StatsBase = "0.33, 0.34"
 julia = "1.0"
 
 [extras]
