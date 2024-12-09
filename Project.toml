@@ -1,7 +1,7 @@
 name = "LPVSpectral"
 uuid = "26dcc766-85df-5edc-b560-6076d5dbac63"
 author = "Fredrik Bagge Carlson <baggepinnen@gmail.com>"
-version = "0.3.3"
+version = "0.3.4"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
